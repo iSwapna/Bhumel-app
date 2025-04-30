@@ -3,7 +3,9 @@
 declare global {
 	namespace App {
 		// interface Error {}
-		// interface Locals {}
+		interface Locals {
+			getSession(): Promise<import('@auth/core/types').Session | null>
+		}
 		// interface PageData {}
 		// interface PageState {}
 		// interface Platform {}

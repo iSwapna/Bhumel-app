@@ -14,7 +14,6 @@
 		"lint": "prettier --check . && eslint ."
 	},
 	"devDependencies": {
-		"@auth/sveltekit": "^1.9.1",
 		"@eslint/compat": "^1.2.5",
 		"@eslint/js": "^9.18.0",
 		"@sveltejs/adapter-auto": "^6.0.0",
@@ -40,6 +39,7 @@
 		]
 	},
 	"dependencies": {
-		"@auth/core": "^0.39.0"
+		"@auth/core": "^0.39.0",
+		"@auth/sveltekit": "^1.9.1"
 	}
 }

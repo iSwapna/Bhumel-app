@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+echo "Running type checks..."
+pnpm typecheck || { echo "Type check failed!"; exit 1; } # Added failure message
+
+echo "Type checks passed!" 
+
+echo "Running lint checks..."
+pnpm lint || { echo "Lint check failed! Try running 'pnpm format' to fix lint errors."; exit 1; } # Modified line
+
+echo "Lint check passed!" 

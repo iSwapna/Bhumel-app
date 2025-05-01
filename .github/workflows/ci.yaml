@@ -41,6 +41,6 @@ jobs:
       - name: Build app
         run: pnpm build
         env:
-          GITHUB_CLIENT_ID: "DUMMY_BUILD_ID"
-          GITHUB_CLIENT_SECRET: "DUMMY_BUILD_SECRET"
-          AUTH_SECRET: "DUMMY_BUILD_AUTH_SECRET"
+          GITHUB_CLIENT_ID: 'DUMMY_BUILD_ID'
+          GITHUB_CLIENT_SECRET: 'DUMMY_BUILD_SECRET'
+          AUTH_SECRET: 'DUMMY_BUILD_AUTH_SECRET'

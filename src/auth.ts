@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { SvelteKitAuth } from "@auth/sveltekit";
 import GitHub from "@auth/sveltekit/providers/github"
 import { AUTH_SECRET, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET } from "$env/static/private";

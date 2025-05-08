@@ -24,6 +24,8 @@ async function verifyGitHubSignature(request: Request, secret: string): Promise<
 }
 
 export const POST: RequestHandler = async ({ request }) => {
+	console.log('GITHUB APP WEBHOOK ENDPOINT HIT!');
+
 	if (!GITHUB_APP_WEBHOOK_SECRET) {
 		console.error(
 			'CRITICAL: GITHUB_APP_WEBHOOK_SECRET is not set. Cannot verify GitHub App webhook payloads.'

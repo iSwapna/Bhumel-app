@@ -2,6 +2,7 @@ import type { RequestHandler } from './$types';
 import { GITHUB_APP_WEBHOOK_SECRET } from '$env/static/private';
 import crypto from 'crypto';
 import { GitHubService } from '$lib/services/github';
+import { MCPService } from '$lib/services/mcp';
 
 interface GitHubRepository {
 	name: string;
@@ -109,6 +110,7 @@ export const POST: RequestHandler = async ({ request }) => {
 async function handlePushEvent(payload: PushEventPayload) {
 	const { repository, installation } = payload;
 	const { owner, name } = repository;
+	const mcpService = new MCPService();
 
 	try {
 		// Get commits for analysis
@@ -123,13 +125,23 @@ async function handlePushEvent(payload: PushEventPayload) {
 				installation.id
 			);
 
-			// TODO: Add commit analysis logic here
-			console.log('Commit details:', {
-				sha: commit.sha,
-				message: commit.commit.message,
-				author: commit.commit.author,
-				changes: commitDetails.files
-			});
+			// Prepare files for MCP analysis
+			const files = (commitDetails.files || []).map((file) => ({
+				path: file.filename,
+				changes: file.patch || ''
+			}));
+
+			// Analyze commit using MCP
+			const analysis = await mcpService.analyzeCommit(commit.sha, commit.commit.message, files);
+
+			// Log the analysis results
+			console.log('MCP Analysis for commit:', commit.sha);
+			console.log('Skills:', analysis.skills);
+			console.log('Context:', analysis.context);
+			console.log('Recommendations:', analysis.recommendations);
+
+			// TODO: Store the analysis results in your database
+			// This could be used to track skill progress over time
 		}
 	} catch (error) {
 		console.error('Error processing push event:', error);

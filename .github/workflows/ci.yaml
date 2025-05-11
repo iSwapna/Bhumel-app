@@ -37,7 +37,6 @@ jobs:
           echo "GITHUB_CLIENT_ID=DUMMY_BUILD_ID" >> .env
           echo "GITHUB_CLIENT_SECRET=DUMMY_BUILD_SECRET" >> .env
           echo "AUTH_SECRET=DUMMY_BUILD_AUTH_SECRET" >> .env
-          echo "GEMINI_API_KEY=DUMMY_GEMINI_API_KEY
 
       - name: Type check
         run: pnpm typecheck

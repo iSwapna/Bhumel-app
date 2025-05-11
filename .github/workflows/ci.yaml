@@ -29,6 +29,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Create .env file
+        run: |
+          echo "GITHUB_APP_ID=${{ secrets.APP_ID }}" >> .env
+          echo "GITHUB_APP_PRIVATE_KEY=${{ secrets.APP_PRIVATE_KEY }}" >> .env
+          echo "GITHUB_APP_WEBHOOK_SECRET=dummy_webhook_secret" >> .env
+          echo "GITHUB_CLIENT_ID=DUMMY_BUILD_ID" >> .env
+          echo "GITHUB_CLIENT_SECRET=DUMMY_BUILD_SECRET" >> .env
+          echo "AUTH_SECRET=DUMMY_BUILD_AUTH_SECRET" >> .env
+
       - name: Type check
         run: pnpm typecheck
 
@@ -40,9 +49,3 @@ jobs:
 
       - name: Build app
         run: pnpm build
-        env:
-          GITHUB_CLIENT_ID: 'DUMMY_BUILD_ID'
-          GITHUB_CLIENT_SECRET: 'DUMMY_BUILD_SECRET'
-          AUTH_SECRET: 'DUMMY_BUILD_AUTH_SECRET'
-          GITHUB_APP_ID: ${{ secrets.APP_ID }}
-          GITHUB_APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}

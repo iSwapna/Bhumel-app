@@ -44,3 +44,5 @@ jobs:
           GITHUB_CLIENT_ID: 'DUMMY_BUILD_ID'
           GITHUB_CLIENT_SECRET: 'DUMMY_BUILD_SECRET'
           AUTH_SECRET: 'DUMMY_BUILD_AUTH_SECRET'
+          GITHUB_APP_ID: ${{ secrets.APP_ID }}
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}

@@ -45,6 +45,8 @@
 		]
 	},
 	"dependencies": {
-		"@auth/sveltekit": "^1.9.1"
+		"@auth/sveltekit": "^1.9.1",
+		"@octokit/auth-app": "^7.2.1",
+		"@octokit/rest": "^21.1.1"
 	}
 }

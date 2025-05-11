@@ -1,6 +1,39 @@
 import type { RequestHandler } from './$types';
 import { GITHUB_APP_WEBHOOK_SECRET } from '$env/static/private';
 import crypto from 'crypto';
+import { GitHubService } from '$lib/services/github';
+
+interface GitHubRepository {
+	name: string;
+	owner: {
+		login: string;
+	};
+}
+
+interface GitHubInstallation {
+	id: number;
+}
+
+interface PushEventPayload {
+	repository: GitHubRepository;
+	installation: GitHubInstallation;
+}
+
+interface PullRequestEventPayload {
+	action: string;
+	pull_request: {
+		number: number;
+		title: string;
+		state: string;
+		user: {
+			login: string;
+		};
+	};
+	repository: GitHubRepository;
+	installation: GitHubInstallation;
+}
+
+const githubService = new GitHubService();
 
 // Function to verify the signature from GitHub
 async function verifyGitHubSignature(request: Request, secret: string): Promise<boolean> {
@@ -44,7 +77,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	try {
-		const payload = await request.json(); // Now parse the original request's body
+		const payload = await request.json();
 		const eventType = request.headers.get('X-GitHub-Event');
 		const deliveryId = request.headers.get('X-GitHub-Delivery');
 
@@ -53,13 +86,18 @@ export const POST: RequestHandler = async ({ request }) => {
 		console.log('Payload:');
 		console.log(JSON.stringify(payload, null, 2)); // Pretty print the JSON
 
-		// TODO: Process the event payload based on eventType.
-		// If your app needs to make API calls back to GitHub (e.g., add a comment, close an issue):
-		// 1. You would need your GitHub App's ID and Private Key.
-		// 2. Generate a JWT (JSON Web Token) signed with your private key.
-		// 3. Exchange this JWT for an Installation Access Token for the specific installation_id found in the payload.
-		// 4. Use that Installation Access Token to authenticate your GitHub API requests.
-		// Libraries like `octokit` or `@octokit/auth-app` can simplify this process.
+		// Handle different event types
+		switch (eventType) {
+			case 'push':
+				await handlePushEvent(payload as PushEventPayload);
+				break;
+			case 'pull_request':
+				await handlePullRequestEvent(payload as PullRequestEventPayload);
+				break;
+			// Add more event types as needed
+			default:
+				console.log(`Unhandled event type: ${eventType}`);
+		}
 
 		return new Response('GitHub App event received successfully', { status: 200 });
 	} catch (error) {
@@ -67,3 +105,39 @@ export const POST: RequestHandler = async ({ request }) => {
 		return new Response('Error processing payload', { status: 500 });
 	}
 };
+
+async function handlePushEvent(payload: PushEventPayload) {
+	const { repository, installation } = payload;
+	const { owner, name } = repository;
+
+	try {
+		// Get commits for analysis
+		const commits = await githubService.getCommits(owner.login, name, installation.id);
+
+		// Process each commit
+		for (const commit of commits) {
+			const commitDetails = await githubService.getCommitDetails(
+				owner.login,
+				name,
+				commit.sha,
+				installation.id
+			);
+
+			// TODO: Add commit analysis logic here
+			console.log('Commit details:', {
+				sha: commit.sha,
+				message: commit.commit.message,
+				author: commit.commit.author,
+				changes: commitDetails.files
+			});
+		}
+	} catch (error) {
+		console.error('Error processing push event:', error);
+		throw error;
+	}
+}
+
+async function handlePullRequestEvent(payload: PullRequestEventPayload) {
+	// TODO: Implement pull request event handling
+	console.log('Pull request event received:', payload);
+}

@@ -31,8 +31,8 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "GITHUB_APP_ID=${{ secrets.APP_ID }}" >> .env
-          echo "GITHUB_APP_PRIVATE_KEY=${{ secrets.APP_PRIVATE_KEY }}" >> .env
+          echo "GITHUB_APP_ID=dummy_app_id" >> .env
+          echo "GITHUB_APP_PRIVATE_KEY=dummy_private_key" >> .env
           echo "GITHUB_APP_WEBHOOK_SECRET=dummy_webhook_secret" >> .env
           echo "GITHUB_CLIENT_ID=DUMMY_BUILD_ID" >> .env
           echo "GITHUB_CLIENT_SECRET=DUMMY_BUILD_SECRET" >> .env

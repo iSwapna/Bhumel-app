@@ -14,6 +14,16 @@ export class GitHubService {
 	constructor() {
 		this.appId = GITHUB_APP_ID;
 		this.privateKey = GITHUB_APP_PRIVATE_KEY;
+
+		if (!this.appId) {
+			throw new Error('GITHUB_APP_ID is not set');
+		}
+		if (!this.privateKey) {
+			throw new Error('GITHUB_APP_PRIVATE_KEY is not set');
+		}
+
+		console.log('Initializing GitHub service with App ID:', this.appId);
+
 		this.octokit = new Octokit({
 			authStrategy: createAppAuth,
 			auth: {

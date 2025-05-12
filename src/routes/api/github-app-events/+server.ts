@@ -108,22 +108,16 @@ export const POST: RequestHandler = async ({ request }) => {
 };
 
 async function handlePushEvent(payload: PushEventPayload) {
-	const { repository, installation } = payload;
-	const { owner, name } = repository;
+	const { installation } = payload;
 	const mcpService = new MCPService();
 
 	try {
 		// Get commits for analysis
-		const commits = await githubService.getCommits(owner.login, name, installation.id);
+		const commits = await githubService.getCommits(installation.id);
 
 		// Process each commit
 		for (const commit of commits) {
-			const commitDetails = await githubService.getCommitDetails(
-				owner.login,
-				name,
-				commit.sha,
-				installation.id
-			);
+			const commitDetails = await githubService.getCommitDetails(commit.sha, installation.id);
 
 			// Prepare files for MCP analysis
 			const files = (commitDetails.files || []).map((file) => ({

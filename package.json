@@ -53,6 +53,7 @@
 		"@huggingface/inference": "^3.12.1",
 		"@octokit/auth-app": "^7.2.1",
 		"@octokit/rest": "^21.1.1",
+		"chart.js": "^4.4.9",
 		"my-puter-sdk": "^1.0.0",
 		"puter": "^1.0.0",
 		"puter-sdk": "^1.4.2"

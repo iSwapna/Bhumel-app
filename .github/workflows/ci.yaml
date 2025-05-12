@@ -38,6 +38,7 @@ jobs:
           echo "GITHUB_CLIENT_SECRET=DUMMY_BUILD_SECRET" >> .env
           echo "AUTH_SECRET=DUMMY_BUILD_AUTH_SECRET" >> .env
           echo "GEMINI_API_KEY=DUMMY_GEMINI_API_KEY" >> .env
+          echo "DEEPSEEK_API_KEY=DUMMY_DEEPSEEK_API_KEY" >> .env
 
       - name: Type check
         run: pnpm typecheck

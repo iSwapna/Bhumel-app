@@ -98,6 +98,19 @@ export class GitHubService {
 		}
 	}
 
+	async getCommitsChronological(installationId: number): Promise<CommitsResponse> {
+		try {
+			// Get commits in default order (newest first)
+			const commits = await this.getCommits(installationId);
+
+			// Reverse to get oldest first
+			return commits.reverse();
+		} catch (error) {
+			console.error('Error getting chronological commits:', error);
+			throw error;
+		}
+	}
+
 	async getCommitDetails(commitSha: string, installationId: number): Promise<CommitResponse> {
 		try {
 			const repository = await this.getFirstRepository(installationId);

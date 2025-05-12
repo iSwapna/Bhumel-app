@@ -1,5 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { GEMINI_API_KEY } from '$env/static/private';
+import { DEEPSEEK_API_KEY } from '$env/static/private';
 
 interface SkillProgress {
 	skill: string;
@@ -8,7 +7,7 @@ interface SkillProgress {
 	evidence: string[];
 }
 
-interface MCPAnalysis {
+interface CommitAnalysis {
 	skills: SkillProgress[];
 	context: {
 		framework: string;
@@ -48,33 +47,34 @@ interface SkillProgressionAnalysis {
 }
 
 // Simple in-memory cache
-const analysisCache = new Map<string, MCPAnalysis>();
+const analysisCache = new Map<string, CommitAnalysis>();
 const progressionCache = new Map<string, SkillProgressionAnalysis>();
 
-export class MCPService {
-	private genAI: GoogleGenerativeAI;
+export class DeepSeekAnalysisService {
+	private baseUrl: string = 'https://api.deepseek.com';
 	private rateLimitDelay: number = 1000; // 1 second between requests
 	private lastRequestTime: number = 0;
+	private models: string[] = ['deepseek-coder', 'deepseek-chat']; // Available models
+	private defaultModel: string = 'deepseek-chat';
 
 	constructor() {
-		if (!GEMINI_API_KEY) {
-			throw new Error('GEMINI_API_KEY is not set');
+		if (!DEEPSEEK_API_KEY) {
+			throw new Error('DEEPSEEK_API_KEY is not set');
 		}
-		this.genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 	}
 
 	async analyzeCommit(
 		commitHash: string,
 		commitMessage: string,
 		files: { path: string; changes: string }[]
-	): Promise<MCPAnalysis> {
+	): Promise<CommitAnalysis> {
 		// Use commit hash as cache key
 		const cacheKey = commitHash;
 
 		// Check cache first
 		const cachedAnalysis = analysisCache.get(cacheKey);
 		if (cachedAnalysis) {
-			console.log('Using cached MCP analysis for commit:', commitHash);
+			console.log('Using cached DeepSeek analysis for commit:', commitHash);
 			return cachedAnalysis;
 		}
 
@@ -87,23 +87,51 @@ export class MCPService {
 			);
 		}
 
-		const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 		const prompt = this.buildPrompt(commitMessage, files);
 
 		try {
 			this.lastRequestTime = Date.now();
-			const result = await model.generateContent(prompt);
-			const response = await result.response;
-			const text = response.text();
+
+			// Make API request to DeepSeek
+			const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${DEEPSEEK_API_KEY}`
+				},
+				body: JSON.stringify({
+					model: this.defaultModel,
+					messages: [
+						{
+							role: 'system',
+							content:
+								'You are a skilled code analyst who specializes in reviewing commits and providing structured feedback.'
+						},
+						{ role: 'user', content: prompt }
+					],
+					temperature: 0.3,
+					max_tokens: 2000
+				})
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`DeepSeek API returned ${response.status}: ${errorText}`);
+			}
+
+			const data = await response.json();
+			const text = data.choices[0].message.content;
+
+			// Parse the response
 			const analysis = this.parseResponse(text);
 
 			// Cache the result using commit hash
 			analysisCache.set(cacheKey, analysis);
-			console.log('Cached MCP analysis for commit:', commitHash);
+			console.log('Cached DeepSeek analysis for commit:', commitHash);
 
 			return analysis;
 		} catch (error) {
-			console.error('Error analyzing commit with MCP:', error);
+			console.error('Error analyzing commit with DeepSeek:', error);
 
 			// Return a basic analysis if API fails
 			return {
@@ -143,7 +171,7 @@ export class MCPService {
 			return cachedAnalysis;
 		}
 
-		console.log(`Analyzing progression of ${commits.length} commits using Gemini 2.0 Flash...`);
+		console.log(`Analyzing progression of ${commits.length} commits...`);
 
 		// Analyze each commit individually
 		const progression: SkillProgressionPoint[] = [];
@@ -174,22 +202,46 @@ export class MCPService {
 		try {
 			this.lastRequestTime = Date.now();
 
-			// Use Gemini 2.0 Flash model for progression analysis
-			const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-			const result = await model.generateContent(analysisPrompt);
-			const response = await result.response;
-			const text = response.text();
+			// Make API request to DeepSeek for cumulative analysis
+			const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${DEEPSEEK_API_KEY}`
+				},
+				body: JSON.stringify({
+					model: this.defaultModel,
+					messages: [
+						{
+							role: 'system',
+							content:
+								'You are a skilled code analyst who specializes in tracking developer skill progression over time.'
+						},
+						{ role: 'user', content: analysisPrompt }
+					],
+					temperature: 0.3,
+					max_tokens: 2000
+				})
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`DeepSeek API returned ${response.status}: ${errorText}`);
+			}
+
+			const data = await response.json();
+			const text = data.choices[0].message.content;
 
 			// Parse the response
 			const progressionAnalysis = this.parseProgressionResponse(text, progression);
 
 			// Cache the result
 			progressionCache.set(cacheKey, progressionAnalysis);
-			console.log('Cached progression analysis with Gemini 2.0 Flash');
+			console.log('Cached progression analysis');
 
 			return progressionAnalysis;
 		} catch (error) {
-			console.error('Error generating progression analysis with Gemini:', error);
+			console.error('Error generating progression analysis:', error);
 
 			// Return a basic analysis if API fails
 			return {
@@ -228,45 +280,61 @@ export class MCPService {
 		}));
 
 		return `
-        Analyze the following commit using the Model Context Protocol (MCP):
-        
-        Commit Message: ${commitMessage}
-        
-        Changed Files:
-        ${limitedFiles
-					.map(
-						(file) => `
-        File: ${file.path}
-        Changes:
-        ${file.changes}
-        `
-					)
-					.join('\n')}
-        
-        Please provide an analysis in the following JSON format:
-        {
-            "skills": [
-                {
-                    "skill": "string",
-                    "level": "beginner|intermediate|advanced",
-                    "confidence": number,
-                    "evidence": ["string"]
-                }
-            ],
-            "context": {
-                "framework": "string",
-                "language": "string",
-                "patterns": ["string"]
-            },
-            "recommendations": ["string"]
-        }
-        
-        Focus on identifying:
-        1. Technical skills demonstrated
-        2. Code patterns and practices
-        3. Framework/language usage
-        4. Areas for improvement
-        `;
+		Analyze the following commit:
+		
+		Commit Message: ${commitMessage}
+		
+		Changed Files:
+		${limitedFiles
+			.map(
+				(file) => `
+		File: ${file.path}
+		Changes:
+		${file.changes}
+		`
+			)
+			.join('\n')}
+		
+		Please provide an analysis in the following JSON format:
+		{
+			"skills": [
+				{
+					"skill": "string",
+					"level": "beginner|intermediate|advanced",
+					"confidence": number,
+					"evidence": ["string"]
+				}
+			],
+			"context": {
+				"framework": "string",
+				"language": "string",
+				"patterns": ["string"]
+			},
+			"recommendations": ["string"]
+		}
+		
+		Focus on identifying:
+		1. Technical skills demonstrated
+		2. Code patterns and practices
+		3. Framework/language usage
+		4. Areas for improvement
+		`;
+	}
+
+	private parseResponse(text: string): CommitAnalysis {
+		try {
+			// Extract JSON from the response
+			const jsonMatch = text.match(/\{[\s\S]*\}/);
+			if (!jsonMatch) {
+				throw new Error('No valid JSON found in response');
+			}
+
+			const analysis = JSON.parse(jsonMatch[0]) as CommitAnalysis;
+			return analysis;
+		} catch (error) {
+			console.error('Error parsing DeepSeek analysis response:', error);
+			throw new Error('Failed to parse DeepSeek analysis response');
+		}
 	}
 
 	private buildProgressionAnalysisPrompt(progression: SkillProgressionPoint[]): string {
@@ -305,22 +373,6 @@ export class MCPService {
 		
 		Focus on tracking skill development over time, identifying growth patterns, and spotting areas where the developer has shown improvement or needs more focus.
 		`;
-	}
-
-	private parseResponse(text: string): MCPAnalysis {
-		try {
-			// Extract JSON from the response
-			const jsonMatch = text.match(/\{[\s\S]*\}/);
-			if (!jsonMatch) {
-				throw new Error('No valid JSON found in response');
-			}
-
-			const analysis = JSON.parse(jsonMatch[0]) as MCPAnalysis;
-			return analysis;
-		} catch (error) {
-			console.error('Error parsing MCP analysis response:', error);
-			throw new Error('Failed to parse MCP analysis response');
-		}
 	}
 
 	private parseProgressionResponse(

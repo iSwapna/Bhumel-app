@@ -235,12 +235,19 @@
                              --success: {colors.success}; --warning: {colors.warning}; --error: {colors.error};"
 >
 	<header>
-		<h1>Skill Progression Dashboard</h1>
+		<h1>Track a Project</h1>
 		<p>Track development skills over time with AI-powered analysis</p>
 	</header>
 
 	<div class="repository-highlight">
-		<h2>Repository: <span class="repo-name">{repository}</span></h2>
+		<h2>Repository</h2>
+		<div class="repo-selector">
+			<select bind:value={repository} on:change={fetchData}>
+				<option value="algol">Algol</option>
+				<option value="bhumel-app">Bhumel App</option>
+				<option value="hume">Hume</option>
+			</select>
+		</div>
 	</div>
 
 	{#if loading}
@@ -252,14 +259,14 @@
 					<div class="batch-progress" style="width: {batchProgress}%"></div>
 				</div>
 			{:else}
-				<p>Analyzing {repository} repository commit history...</p>
+				<p>Analyzing project commits...</p>
 			{/if}
 		</div>
 	{:else if error}
 		<div class="error-container">
 			<h2>Error</h2>
 			<p>{error}</p>
-			<button class="primary-button" on:click={fetchData}>Try Analyzing {repository} Again</button>
+			<button class="primary-button" on:click={fetchData}>Try Again</button>
 		</div>
 	{:else if progressionData}
 		<div class="dashboard-content">
@@ -335,16 +342,6 @@
 									style="width: {progressionData.clrsAreas.foundations.coverage}%"
 								></div>
 							</div>
-							{#if progressionData.clrsAreas.foundations.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.foundations.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
 						</div>
 
 						<div class="clrs-area">
@@ -360,16 +357,6 @@
 									style="width: {progressionData.clrsAreas.divideAndConquer.coverage}%"
 								></div>
 							</div>
-							{#if progressionData.clrsAreas.divideAndConquer.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.divideAndConquer.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
 						</div>
 
 						<div class="clrs-area">
@@ -385,16 +372,6 @@
 									style="width: {progressionData.clrsAreas.dataStructures.coverage}%"
 								></div>
 							</div>
-							{#if progressionData.clrsAreas.dataStructures.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.dataStructures.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
 						</div>
 
 						<div class="clrs-area">
@@ -410,16 +387,6 @@
 									style="width: {progressionData.clrsAreas.advancedDesign.coverage}%"
 								></div>
 							</div>
-							{#if progressionData.clrsAreas.advancedDesign.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.advancedDesign.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
 						</div>
 
 						<div class="clrs-area">
@@ -435,16 +402,6 @@
 									style="width: {progressionData.clrsAreas.graphAlgorithms.coverage}%"
 								></div>
 							</div>
-							{#if progressionData.clrsAreas.graphAlgorithms.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.graphAlgorithms.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
 						</div>
 
 						<div class="clrs-area">
@@ -460,16 +417,6 @@
 									style="width: {progressionData.clrsAreas.selectedTopics.coverage}%"
 								></div>
 							</div>
-							{#if progressionData.clrsAreas.selectedTopics.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.selectedTopics.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
 						</div>
 					</div>
 				{:else}
@@ -480,8 +427,8 @@
 	{:else}
 		<div class="empty-state">
 			<h2>No Data Available</h2>
-			<p>Click the button below to analyze the {repository} repository.</p>
-			<button class="primary-button" on:click={fetchData}>Analyze {repository} Repository</button>
+			<p>Select a repository and click the button below to analyze it.</p>
+			<button class="primary-button" on:click={fetchData}>Analyze Project</button>
 		</div>
 	{/if}
 </div>
@@ -507,12 +454,37 @@
 	}
 
 	.repository-highlight h2 {
-		margin-bottom: 0;
+		margin-bottom: 0.75rem;
 	}
 
-	.repo-name {
+	.repo-selector {
+		max-width: 300px;
+		margin: 0 auto;
+	}
+
+	.repo-selector select {
+		width: 100%;
+		padding: 0.75rem;
+		border-radius: 6px;
+		border: 1px solid #ddd;
+		background-color: white;
+		font-size: 1rem;
+		font-weight: 500;
 		color: var(--primary);
-		font-weight: 700;
+		cursor: pointer;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		appearance: none;
+		background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24'%3e%3cpath fill='none' d='M0 0h24v24H0z'/%3e%3cpath d='M12 15l-4.243-4.243 1.415-1.414L12 12.172l2.828-2.829 1.415 1.414z' fill='%23800020'/%3e%3c/svg%3e");
+		background-repeat: no-repeat;
+		background-position: right 10px center;
+		background-size: 20px;
+	}
+
+	.repo-selector select:focus {
+		outline: none;
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px rgba(128, 0, 32, 0.2);
 	}
 
 	header {
@@ -761,26 +733,6 @@
 		background: linear-gradient(to right, var(--primary), var(--secondary));
 		border-radius: 6px;
 		transition: width 0.5s ease;
-	}
-
-	.examples {
-		margin-top: 0.75rem;
-	}
-
-	.examples h4 {
-		font-size: 0.9rem;
-		font-weight: 600;
-		margin-bottom: 0.5rem;
-	}
-
-	.examples ul {
-		padding-left: 1.25rem;
-		margin: 0;
-	}
-
-	.examples li {
-		font-size: 0.85rem;
-		margin-bottom: 0.25rem;
 	}
 
 	.no-clrs-data {

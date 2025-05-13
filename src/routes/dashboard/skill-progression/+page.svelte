@@ -1,66 +1,39 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import {
+		progressionStore,
+		loadingStore,
+		errorStore,
+		dateRangeStore,
+		maxCommitsStore,
+		processingBatchesStore,
+		batchProgressStore,
+		repositoryStore,
+		type ProgressionData
+	} from '$lib/stores/dashboardStore';
 
-	// Define types for our data structures
-	interface Skill {
-		skill: string;
-		level: string;
-	}
-
-	interface ProgressionItem {
-		commitDate: string;
-		skills: Skill[];
-	}
-
-	interface ProgressionData {
-		progression: ProgressionItem[];
-		overallGrowth: string;
-		recommendations: string[];
-		clrsAreas: {
-			foundations: {
-				coverage: number;
-				examples: string[];
-			};
-			divideAndConquer: {
-				coverage: number;
-				examples: string[];
-			};
-			dataStructures: {
-				coverage: number;
-				examples: string[];
-			};
-			advancedDesign: {
-				coverage: number;
-				examples: string[];
-			};
-			graphAlgorithms: {
-				coverage: number;
-				examples: string[];
-			};
-			selectedTopics: {
-				coverage: number;
-				examples: string[];
-			};
-		};
-	}
-
-	// State management
-	let loading = true;
-	let error: string | null = null;
-	let progressionData: ProgressionData | null = null;
+	// State from stores
+	let loading = $loadingStore;
+	let error = $errorStore;
+	let progressionData = $progressionStore;
 	let installationId = '66241334'; // Hardcoded installation ID
-	let repository = 'algol'; // Specify algol repo
-	let maxCommits = 10;
-	let dateRange: {
-		start: Date | null;
-		end: Date | null;
-	} = {
-		start: null,
-		end: null
-	};
+	let repository = $repositoryStore;
+	let maxCommits = $maxCommitsStore;
+	let dateRange = $dateRangeStore;
+	let processingBatches = $processingBatchesStore;
+	let batchProgress = $batchProgressStore;
+
+	// Update store values when local variables change
+	$: $loadingStore = loading;
+	$: $errorStore = error;
+	$: $progressionStore = progressionData;
+	$: $repositoryStore = repository;
+	$: $maxCommitsStore = maxCommits;
+	$: $dateRangeStore = dateRange;
+	$: $processingBatchesStore = processingBatches;
+	$: $batchProgressStore = batchProgress;
+
 	let totalBatches = 0;
-	let processingBatches = false;
-	let batchProgress = 0;
 	let batchSize = 3;
 
 	// Define color palette with new text color
@@ -78,8 +51,10 @@
 	};
 
 	onMount(async () => {
-		// Directly fetch data with hardcoded installation ID
-		await fetchData();
+		// Only fetch data if we don't already have it
+		if (!$progressionStore) {
+			await fetchData();
+		}
 	});
 
 	async function fetchData() {
@@ -235,6 +210,17 @@
 
 	function handleFiltersChange() {
 		// Update filtering
+	}
+
+	// For TypeScript type safety
+	interface ProgressionItem {
+		commitDate: string;
+		skills: Skill[];
+	}
+
+	interface Skill {
+		skill: string;
+		level: string;
 	}
 </script>
 

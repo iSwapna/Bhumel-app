@@ -235,6 +235,111 @@ export class MCPService {
 		}
 	}
 
+	async analyzeCommitProgressionBatch(
+		commits: Array<{
+			sha: string;
+			date: string;
+			message: string;
+			files: { path: string; changes: string }[];
+		}>,
+		batchId: number,
+		totalBatches: number
+	): Promise<SkillProgressionAnalysis> {
+		// Use a hash of all commit SHAs in this batch as cache key
+		const cacheKey = `batch_${batchId}_of_${totalBatches}_${commits.map((c) => c.sha).join('_')}`;
+
+		// Check cache first
+		const cachedAnalysis = progressionCache.get(cacheKey);
+		if (cachedAnalysis) {
+			console.log(`Using cached progression analysis for batch ${batchId + 1}/${totalBatches}`);
+			return cachedAnalysis;
+		}
+
+		console.log(
+			`Analyzing batch ${batchId + 1}/${totalBatches} with ${commits.length} commits using Gemini 2.0 Flash...`
+		);
+
+		// Analyze each commit individually
+		const progression: SkillProgressionPoint[] = [];
+		for (const commit of commits) {
+			try {
+				// Analyze the commit
+				const analysis = await this.analyzeCommit(commit.sha, commit.message, commit.files);
+
+				// Add to progression timeline
+				progression.push({
+					commitSha: commit.sha,
+					commitDate: commit.date,
+					skills: analysis.skills
+				});
+
+				console.log(`Analyzed commit ${commit.sha} in batch ${batchId + 1}`);
+			} catch (error) {
+				console.error(`Error analyzing commit ${commit.sha} in batch ${batchId + 1}:`, error);
+			}
+
+			// Add a small delay between commits to avoid rate limiting
+			await new Promise((resolve) => setTimeout(resolve, this.rateLimitDelay));
+		}
+
+		// Generate analysis from batch progression data
+		const analysisPrompt = this.buildProgressionAnalysisPrompt(progression);
+
+		try {
+			this.lastRequestTime = Date.now();
+
+			// Use Gemini 2.0 Flash model for progression analysis
+			const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+			const result = await model.generateContent(analysisPrompt);
+			const response = await result.response;
+			const text = response.text();
+
+			// Parse the response
+			const progressionAnalysis = this.parseProgressionResponse(text, progression);
+
+			// Cache the result
+			progressionCache.set(cacheKey, progressionAnalysis);
+			console.log(`Cached progression analysis for batch ${batchId + 1}/${totalBatches}`);
+
+			return progressionAnalysis;
+		} catch (error) {
+			console.error(`Error generating progression analysis for batch ${batchId + 1}:`, error);
+
+			// Return a basic analysis if API fails
+			return {
+				progression,
+				clrsAreas: {
+					foundations: {
+						coverage: 0,
+						examples: []
+					},
+					divideAndConquer: {
+						coverage: 0,
+						examples: []
+					},
+					dataStructures: {
+						coverage: 0,
+						examples: []
+					},
+					advancedDesign: {
+						coverage: 0,
+						examples: []
+					},
+					graphAlgorithms: {
+						coverage: 0,
+						examples: []
+					},
+					selectedTopics: {
+						coverage: 0,
+						examples: []
+					}
+				},
+				overallGrowth: `Unable to analyze batch ${batchId + 1}/${totalBatches} due to an error`,
+				recommendations: [`Retry analysis for batch ${batchId + 1}`]
+			};
+		}
+	}
+
 	private buildPrompt(commitMessage: string, files: { path: string; changes: string }[]): string {
 		// Limit the size of the prompt to avoid token limits
 		const maxFiles = 5;
@@ -332,10 +437,12 @@ export class MCPService {
 				}
 			},
 			"overallGrowth": "string",
-			"recommendations": ["string"]
+			"recommendations": ["string", "string", "string"]
 		}
 		
 		Focus on tracking skill development over time, identifying which CLRS areas have been covered, and spotting areas where the developer has shown improvement or needs more focus. The coverage percentage represents how much of each CLRS area has been demonstrated in the code.
+
+		IMPORTANT: Provide exactly 3 recommendations that are short, clear, and immediately actionable. Each recommendation should be a concise bullet point of 10-15 words that tells the developer specifically what to practice next.
 		`;
 	}
 

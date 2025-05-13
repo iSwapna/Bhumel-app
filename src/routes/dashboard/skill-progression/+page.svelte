@@ -58,6 +58,10 @@
 		start: null,
 		end: null
 	};
+	let totalBatches = 0;
+	let processingBatches = false;
+	let batchProgress = 0;
+	let batchSize = 3;
 
 	// Define color palette to match slides
 	const colors = {
@@ -90,10 +94,13 @@
 	async function fetchData() {
 		loading = true;
 		error = null;
+		processingBatches = false;
+		batchProgress = 0;
 
 		try {
+			// Initial fetch with first batch
 			const response = await fetch(
-				`/api/analyze-gemini?installation_id=${installationId}&max_commits=${maxCommits}`
+				`/api/analyze-gemini?installation_id=${installationId}&max_commits=${maxCommits}&batch_size=${batchSize}`
 			);
 
 			if (!response.ok) {
@@ -103,6 +110,49 @@
 
 			const data = await response.json();
 			progressionData = data.progressionAnalysis;
+			totalBatches = data.totalBatches;
+
+			// Process remaining batches if there are any
+			if (data.remainingBatches > 0 && data.commitBatches && data.commitBatches.length > 0) {
+				processingBatches = true;
+
+				// Start processing the remaining batches
+				for (let batchId = 1; batchId < totalBatches; batchId++) {
+					try {
+						const batchResponse = await fetch(`/api/analyze-gemini`, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify({
+								installationId: data.installationId,
+								commitBatch: data.commitBatches[batchId - 1], // Get the correct batch from the server
+								batchId,
+								totalBatches: data.totalBatches
+							})
+						});
+
+						if (!batchResponse.ok) {
+							console.error(`Failed to process batch ${batchId + 1}/${totalBatches}`);
+							continue;
+						}
+
+						const batchData = await batchResponse.json();
+
+						if (batchData.success) {
+							// Merge the batch results with existing data
+							if (progressionData) {
+								progressionData = mergeBatchResults(progressionData, batchData.batchResults);
+							} else {
+								progressionData = batchData.batchResults;
+							}
+							batchProgress = Math.round(((batchId + 1) / totalBatches) * 100);
+						}
+					} catch (batchErr) {
+						console.error(`Error processing batch ${batchId + 1}:`, batchErr);
+					}
+				}
+			}
 
 			// Initialize date range from the data
 			if (
@@ -123,7 +173,72 @@
 			}
 		} finally {
 			loading = false;
+			processingBatches = false;
 		}
+	}
+
+	// Helper function to merge batch results
+	function mergeBatchResults(
+		currentData: ProgressionData,
+		newBatchData: ProgressionData
+	): ProgressionData {
+		// Create a deep copy of the current data to avoid mutation
+		const mergedData = JSON.parse(JSON.stringify(currentData));
+
+		// Merge progression data
+		if (newBatchData.progression && newBatchData.progression.length > 0) {
+			mergedData.progression = [...mergedData.progression, ...newBatchData.progression];
+
+			// Sort by date
+			mergedData.progression.sort(
+				(a: ProgressionItem, b: ProgressionItem) =>
+					new Date(a.commitDate).getTime() - new Date(b.commitDate).getTime()
+			);
+		}
+
+		// Merge CLRS areas by averaging or taking max values
+		if (newBatchData.clrsAreas) {
+			// Define allowed areas for type safety
+			const areas = [
+				'foundations',
+				'divideAndConquer',
+				'dataStructures',
+				'advancedDesign',
+				'graphAlgorithms',
+				'selectedTopics'
+			] as const;
+
+			// Use the defined areas to iterate
+			areas.forEach((area) => {
+				if (mergedData.clrsAreas[area] && newBatchData.clrsAreas[area]) {
+					// Take the higher coverage value
+					mergedData.clrsAreas[area].coverage = Math.max(
+						mergedData.clrsAreas[area].coverage,
+						newBatchData.clrsAreas[area].coverage
+					);
+
+					// Merge examples, avoiding duplicates
+					const existingExamples = new Set(mergedData.clrsAreas[area].examples);
+					newBatchData.clrsAreas[area].examples.forEach((example: string) => {
+						existingExamples.add(example);
+					});
+					mergedData.clrsAreas[area].examples = Array.from(existingExamples);
+				}
+			});
+		}
+
+		// Update recommendations if they're better
+		if (newBatchData.recommendations && newBatchData.recommendations.length > 0) {
+			// For simplicity, just take the newest recommendations
+			mergedData.recommendations = newBatchData.recommendations;
+		}
+
+		// Update overall growth assessment
+		if (newBatchData.overallGrowth) {
+			mergedData.overallGrowth = newBatchData.overallGrowth;
+		}
+
+		return mergedData;
 	}
 
 	function handleFiltersChange() {
@@ -171,7 +286,14 @@
 	{:else if loading}
 		<div class="loading-container">
 			<div class="loading-spinner"></div>
-			<p>Analyzing commit history...</p>
+			{#if processingBatches && batchProgress > 0}
+				<p>Processing batches: {batchProgress}% complete...</p>
+				<div class="batch-progress-bar">
+					<div class="batch-progress" style="width: {batchProgress}%"></div>
+				</div>
+			{:else}
+				<p>Analyzing commit history...</p>
+			{/if}
 		</div>
 	{:else if error}
 		<div class="error-container">
@@ -696,5 +818,21 @@
 		padding: 2rem;
 		color: var(--light-text);
 		font-style: italic;
+	}
+
+	.batch-progress-bar {
+		width: 80%;
+		height: 8px;
+		background-color: #e9ecef;
+		border-radius: 4px;
+		margin: 1rem auto;
+		overflow: hidden;
+	}
+
+	.batch-progress {
+		height: 100%;
+		background: linear-gradient(to right, var(--primary), var(--secondary));
+		border-radius: 4px;
+		transition: width 0.3s ease;
 	}
 </style>

@@ -44,6 +44,20 @@
 </div>
 
 <style>
+	/* Import elegant fonts to match logo */
+	@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+	:global(body) {
+		font-family: 'Montserrat', sans-serif;
+		margin: 0;
+		padding: 0;
+	}
+
+	:global(h1, h2, h3, h4, h5, h6) {
+		font-family: 'Playfair Display', serif;
+		color: #800020;
+	}
+
 	.app {
 		display: flex;
 		flex-direction: column;
@@ -52,7 +66,7 @@
 
 	header {
 		background-color: white;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+		box-shadow: 0 2px 8px rgba(128, 0, 32, 0.1);
 		position: sticky;
 		top: 0;
 		z-index: 100;
@@ -80,10 +94,13 @@
 	.nav-tab {
 		color: #800020; /* Maroon color */
 		text-decoration: none;
-		font-weight: 600;
+		font-family: 'Playfair Display', serif;
+		font-weight: 500;
+		font-size: 1.1rem;
 		padding: 1rem 0.5rem;
 		position: relative;
 		transition: color 0.2s;
+		letter-spacing: 0.5px;
 	}
 
 	.nav-tab:hover {
@@ -96,7 +113,7 @@
 		bottom: 0;
 		left: 0;
 		width: 0;
-		height: 3px;
+		height: 2px;
 		background-color: #800020; /* Maroon color */
 		transition: width 0.3s;
 	}
@@ -111,9 +128,6 @@
 		transform: translateX(-50%);
 		z-index: 5;
 		padding: 0.5rem;
-		background-color: white;
-		border-radius: 50%;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 	}
 
 	.logo {
@@ -135,17 +149,20 @@
 	.user-name {
 		font-weight: 500;
 		color: #800020; /* Maroon color */
+		font-family: 'Montserrat', sans-serif;
 	}
 
 	.sign-in-btn,
 	.sign-out-btn {
-		padding: 0.5rem 1rem;
-		border-radius: 6px;
+		padding: 0.5rem 1.2rem;
+		border-radius: 4px;
 		font-weight: 500;
-		transition: background-color 0.2s;
+		transition: all 0.2s;
 		border: none;
-		font-size: 1rem;
+		font-size: 0.95rem;
 		cursor: pointer;
+		font-family: 'Montserrat', sans-serif;
+		letter-spacing: 0.5px;
 	}
 
 	.sign-in-btn {
@@ -161,10 +178,12 @@
 
 	.sign-in-btn:hover {
 		background-color: #600018; /* Darker maroon */
+		transform: translateY(-1px);
 	}
 
 	.sign-out-btn:hover {
-		background-color: #f5f7ff;
+		background-color: rgba(128, 0, 32, 0.05);
+		transform: translateY(-1px);
 	}
 
 	main {
@@ -205,6 +224,11 @@
 
 		.logo {
 			height: 60px;
+		}
+
+		.nav-tab {
+			font-size: 1rem;
+			padding: 0.75rem 0.5rem;
 		}
 	}
 </style>

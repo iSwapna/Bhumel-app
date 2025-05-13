@@ -1,23 +1,16 @@
 <script>
-	import { SignIn, SignOut } from '@auth/sveltekit/components';
-	import { page } from '$app/stores';
 </script>
 
-<h1>Login</h1>
-<div>
-	{#if $page.data.session}
-		{#if $page.data.session.user?.image}
-			<img src={$page.data.session.user.image} class="avatar" alt="User Avatar" />
-		{/if}
-		<span class="signedInText">
-			<small>Signed in as</small><br />
-			<strong>{$page.data.session.user?.name ?? 'User'}</strong>
-		</span>
-		<SignOut>
-			<div slot="submitButton" class="buttonPrimary">Sign out</div>
-		</SignOut>
-	{:else}
-		<span class="notSignedInText">You are not signed in</span>
-		<SignIn provider="github" />
-	{/if}
+<div class="home-container">
+	<!-- Get Started button removed -->
 </div>
+
+<style>
+	.home-container {
+		min-height: 100vh;
+		background-image: url('/Bhumel2.png');
+		background-size: cover;
+		background-position: center;
+		background-repeat: no-repeat;
+	}
+</style>

@@ -1,99 +1,72 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import {
+		progressionStore,
+		loadingStore,
+		errorStore,
+		dateRangeStore,
+		maxCommitsStore,
+		processingBatchesStore,
+		batchProgressStore,
+		repositoryStore,
+		type ProgressionData
+	} from '$lib/stores/dashboardStore';
 
-	// Define types for our data structures
-	interface Skill {
-		skill: string;
-		level: string;
-	}
+	// State from stores
+	let loading = $loadingStore;
+	let error = $errorStore;
+	let progressionData = $progressionStore;
+	let installationId = '66241334'; // Hardcoded installation ID
+	let repository = $repositoryStore;
+	let maxCommits = $maxCommitsStore;
+	let dateRange = $dateRangeStore;
+	let processingBatches = $processingBatchesStore;
+	let batchProgress = $batchProgressStore;
 
-	interface ProgressionItem {
-		commitDate: string;
-		skills: Skill[];
-	}
+	// Update store values when local variables change
+	$: $loadingStore = loading;
+	$: $errorStore = error;
+	$: $progressionStore = progressionData;
+	$: $repositoryStore = repository;
+	$: $maxCommitsStore = maxCommits;
+	$: $dateRangeStore = dateRange;
+	$: $processingBatchesStore = processingBatches;
+	$: $batchProgressStore = batchProgress;
 
-	interface ProgressionData {
-		progression: ProgressionItem[];
-		overallGrowth: string;
-		recommendations: string[];
-		clrsAreas: {
-			foundations: {
-				coverage: number;
-				examples: string[];
-			};
-			divideAndConquer: {
-				coverage: number;
-				examples: string[];
-			};
-			dataStructures: {
-				coverage: number;
-				examples: string[];
-			};
-			advancedDesign: {
-				coverage: number;
-				examples: string[];
-			};
-			graphAlgorithms: {
-				coverage: number;
-				examples: string[];
-			};
-			selectedTopics: {
-				coverage: number;
-				examples: string[];
-			};
-		};
-	}
+	let totalBatches = 0;
+	let batchSize = 3;
 
-	// State management
-	let loading = true;
-	let error: string | null = null;
-	let progressionData: ProgressionData | null = null;
-	let installationId = '';
-	let maxCommits = 10;
-	let dateRange: {
-		start: Date | null;
-		end: Date | null;
-	} = {
-		start: null,
-		end: null
-	};
-
-	// Define color palette to match slides
+	// Define color palette with new text color
 	const colors = {
-		primary: '#1E5AF6', // Blue
-		secondary: '#6C00FF', // Deep purple
+		primary: '#800020', // Maroon
+		secondary: '#33001a', // Dark maroon text color
 		accent: '#FC6E27', // Orange
 		background: '#F8F9FC', // Light gray background
-		text: '#2C2C2C', // Dark text
-		lightText: '#757575', // Light text
+		text: '#33001a', // Dark maroon text
+		lightText: '#33001a', // Dark maroon text
 		success: '#00A389', // Green
 		warning: '#FFB800', // Yellow
 		error: '#FF3B6B', // Red
-		chartColors: ['#1E5AF6', '#FC6E27', '#00A389'] // Blue, Orange, Green for the three skills
+		chartColors: ['#800020', '#FC6E27', '#00A389'] // Maroon, Orange, Green for the three skills
 	};
 
 	onMount(async () => {
-		// Get URL params if they exist
-		const urlParams = new URLSearchParams(window.location.search);
-		if (urlParams.has('installation_id')) {
-			const id = urlParams.get('installation_id');
-			if (id) {
-				installationId = id;
-				await fetchData();
-			}
-		} else {
-			loading = false;
+		// Only fetch data if we don't already have it
+		if (!$progressionStore) {
+			await fetchData();
 		}
 	});
 
 	async function fetchData() {
 		loading = true;
 		error = null;
+		processingBatches = false;
+		batchProgress = 0;
 
 		try {
+			// Initial fetch with first batch
 			const response = await fetch(
-				`/api/analyze-gemini?installation_id=${installationId}&max_commits=${maxCommits}`
+				`/api/analyze-gemini?installation_id=${installationId}&max_commits=${maxCommits}&batch_size=${batchSize}&repository=${repository}`
 			);
 
 			if (!response.ok) {
@@ -103,6 +76,50 @@
 
 			const data = await response.json();
 			progressionData = data.progressionAnalysis;
+			totalBatches = data.totalBatches;
+
+			// Process remaining batches if there are any
+			if (data.remainingBatches > 0 && data.commitBatches && data.commitBatches.length > 0) {
+				processingBatches = true;
+
+				// Start processing the remaining batches
+				for (let batchId = 1; batchId < totalBatches; batchId++) {
+					try {
+						const batchResponse = await fetch(`/api/analyze-gemini`, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify({
+								installationId: data.installationId,
+								repository: repository,
+								commitBatch: data.commitBatches[batchId - 1], // Get the correct batch from the server
+								batchId,
+								totalBatches: data.totalBatches
+							})
+						});
+
+						if (!batchResponse.ok) {
+							console.error(`Failed to process batch ${batchId + 1}/${totalBatches}`);
+							continue;
+						}
+
+						const batchData = await batchResponse.json();
+
+						if (batchData.success) {
+							// Merge the batch results with existing data
+							if (progressionData) {
+								progressionData = mergeBatchResults(progressionData, batchData.batchResults);
+							} else {
+								progressionData = batchData.batchResults;
+							}
+							batchProgress = Math.round(((batchId + 1) / totalBatches) * 100);
+						}
+					} catch (batchErr) {
+						console.error(`Error processing batch ${batchId + 1}:`, batchErr);
+					}
+				}
+			}
 
 			// Initialize date range from the data
 			if (
@@ -123,15 +140,87 @@
 			}
 		} finally {
 			loading = false;
+			processingBatches = false;
 		}
+	}
+
+	// Helper function to merge batch results
+	function mergeBatchResults(
+		currentData: ProgressionData,
+		newBatchData: ProgressionData
+	): ProgressionData {
+		// Create a deep copy of the current data to avoid mutation
+		const mergedData = JSON.parse(JSON.stringify(currentData));
+
+		// Merge progression data
+		if (newBatchData.progression && newBatchData.progression.length > 0) {
+			mergedData.progression = [...mergedData.progression, ...newBatchData.progression];
+
+			// Sort by date
+			mergedData.progression.sort(
+				(a: ProgressionItem, b: ProgressionItem) =>
+					new Date(a.commitDate).getTime() - new Date(b.commitDate).getTime()
+			);
+		}
+
+		// Merge CLRS areas by averaging or taking max values
+		if (newBatchData.clrsAreas) {
+			// Define allowed areas for type safety
+			const areas = [
+				'foundations',
+				'divideAndConquer',
+				'dataStructures',
+				'advancedDesign',
+				'graphAlgorithms',
+				'selectedTopics'
+			] as const;
+
+			// Use the defined areas to iterate
+			areas.forEach((area) => {
+				if (mergedData.clrsAreas[area] && newBatchData.clrsAreas[area]) {
+					// Take the higher coverage value
+					mergedData.clrsAreas[area].coverage = Math.max(
+						mergedData.clrsAreas[area].coverage,
+						newBatchData.clrsAreas[area].coverage
+					);
+
+					// Merge examples, avoiding duplicates
+					const existingExamples = new Set(mergedData.clrsAreas[area].examples);
+					newBatchData.clrsAreas[area].examples.forEach((example: string) => {
+						existingExamples.add(example);
+					});
+					mergedData.clrsAreas[area].examples = Array.from(existingExamples);
+				}
+			});
+		}
+
+		// Update recommendations if they're better
+		if (newBatchData.recommendations && newBatchData.recommendations.length > 0) {
+			// For simplicity, just take the newest recommendations
+			mergedData.recommendations = newBatchData.recommendations;
+		}
+
+		// Update overall growth assessment
+		if (newBatchData.overallGrowth) {
+			mergedData.overallGrowth = newBatchData.overallGrowth;
+		}
+
+		return mergedData;
 	}
 
 	function handleFiltersChange() {
 		// Update filtering
 	}
 
-	function handleInstallationSubmit() {
-		goto(`?installation_id=${installationId}&max_commits=${maxCommits}`);
+	// For TypeScript type safety
+	interface ProgressionItem {
+		commitDate: string;
+		skills: Skill[];
+	}
+
+	interface Skill {
+		skill: string;
+		level: string;
 	}
 </script>
 
@@ -150,34 +239,27 @@
 		<p>Track development skills over time with AI-powered analysis</p>
 	</header>
 
-	{#if !installationId}
-		<div class="setup-section">
-			<h2>Get Started</h2>
-			<div class="form-group">
-				<label for="installation-id">GitHub Installation ID</label>
-				<input
-					type="text"
-					id="installation-id"
-					bind:value={installationId}
-					placeholder="Enter your GitHub App installation ID"
-				/>
-			</div>
-			<div class="form-group">
-				<label for="max-commits">Maximum Commits to Analyze</label>
-				<input type="number" id="max-commits" bind:value={maxCommits} min="1" max="50" />
-			</div>
-			<button class="primary-button" on:click={handleInstallationSubmit}>Analyze Repository</button>
-		</div>
-	{:else if loading}
+	<div class="repository-highlight">
+		<h2>Repository: <span class="repo-name">{repository}</span></h2>
+	</div>
+
+	{#if loading}
 		<div class="loading-container">
 			<div class="loading-spinner"></div>
-			<p>Analyzing commit history...</p>
+			{#if processingBatches && batchProgress > 0}
+				<p>Processing batches: {batchProgress}% complete...</p>
+				<div class="batch-progress-bar">
+					<div class="batch-progress" style="width: {batchProgress}%"></div>
+				</div>
+			{:else}
+				<p>Analyzing {repository} repository commit history...</p>
+			{/if}
 		</div>
 	{:else if error}
 		<div class="error-container">
 			<h2>Error</h2>
 			<p>{error}</p>
-			<button class="primary-button" on:click={fetchData}>Try Again</button>
+			<button class="primary-button" on:click={fetchData}>Try Analyzing {repository} Again</button>
 		</div>
 	{:else if progressionData}
 		<div class="dashboard-content">
@@ -398,31 +480,39 @@
 	{:else}
 		<div class="empty-state">
 			<h2>No Data Available</h2>
-			<p>Try analyzing a repository to see skill progression data.</p>
-			<button class="primary-button" on:click={fetchData}>Analyze Repository</button>
+			<p>Click the button below to analyze the {repository} repository.</p>
+			<button class="primary-button" on:click={fetchData}>Analyze {repository} Repository</button>
 		</div>
 	{/if}
 </div>
 
 <style>
 	.dashboard {
-		font-family:
-			'Inter',
-			-apple-system,
-			BlinkMacSystemFont,
-			'Segoe UI',
-			Roboto,
-			Oxygen,
-			Ubuntu,
-			Cantarell,
-			'Open Sans',
-			'Helvetica Neue',
-			sans-serif;
+		font-family: 'Roboto', sans-serif;
 		max-width: 1200px;
 		margin: 0 auto;
 		padding: 2rem;
 		background-color: var(--background);
-		color: var(--text);
+		color: #33001a;
+		font-weight: 500;
+	}
+
+	.repository-highlight {
+		background-color: white;
+		border-radius: 12px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+		padding: 1rem 1.5rem;
+		margin-bottom: 2rem;
+		text-align: center;
+	}
+
+	.repository-highlight h2 {
+		margin-bottom: 0;
+	}
+
+	.repo-name {
+		color: var(--primary);
+		font-weight: 700;
 	}
 
 	header {
@@ -431,15 +521,18 @@
 	}
 
 	header h1 {
-		font-size: 2.5rem;
-		font-weight: 700;
-		color: var(--primary);
+		font-size: 2.75rem;
+		font-weight: 900;
+		color: #33001a;
 		margin-bottom: 0.5rem;
+		font-family: 'Roboto Slab', serif;
+		letter-spacing: -0.02em;
 	}
 
 	header p {
-		font-size: 1.125rem;
-		color: var(--light-text);
+		font-size: 1.25rem;
+		color: #33001a;
+		font-weight: 500;
 	}
 
 	.dashboard-content {
@@ -448,7 +541,6 @@
 		gap: 2rem;
 	}
 
-	.setup-section,
 	.filter-section,
 	.recommendations-section,
 	.empty-state,
@@ -461,10 +553,12 @@
 	}
 
 	h2 {
-		font-size: 1.5rem;
-		font-weight: 600;
+		font-size: 1.75rem;
+		font-weight: 700;
 		margin-bottom: 1rem;
-		color: var(--primary);
+		color: #33001a;
+		font-family: 'Roboto Slab', serif;
+		letter-spacing: -0.02em;
 	}
 
 	.filter-controls {
@@ -500,9 +594,11 @@
 		border: none;
 		border-radius: 6px;
 		padding: 0.75rem 1.5rem;
-		font-weight: 500;
+		font-weight: 700;
 		cursor: pointer;
 		transition: background-color 0.2s;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
 	}
 
 	.primary-button:hover,
@@ -568,10 +664,6 @@
 	.empty-state {
 		text-align: center;
 		padding: 3rem;
-	}
-
-	.form-group {
-		margin-bottom: 1.5rem;
 	}
 
 	@media (min-width: 768px) {
@@ -696,5 +788,21 @@
 		padding: 2rem;
 		color: var(--light-text);
 		font-style: italic;
+	}
+
+	.batch-progress-bar {
+		width: 80%;
+		height: 8px;
+		background-color: #e9ecef;
+		border-radius: 4px;
+		margin: 1rem auto;
+		overflow: hidden;
+	}
+
+	.batch-progress {
+		height: 100%;
+		background: linear-gradient(to right, var(--primary), var(--secondary));
+		border-radius: 4px;
+		transition: width 0.3s ease;
 	}
 </style>

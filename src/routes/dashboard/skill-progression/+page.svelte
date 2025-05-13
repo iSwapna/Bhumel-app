@@ -63,18 +63,18 @@
 	let batchProgress = 0;
 	let batchSize = 3;
 
-	// Define color palette to match slides
+	// Define color palette with new text color
 	const colors = {
-		primary: '#1E5AF6', // Blue
-		secondary: '#6C00FF', // Deep purple
+		primary: '#800020', // Maroon
+		secondary: '#33001a', // Dark maroon text color
 		accent: '#FC6E27', // Orange
 		background: '#F8F9FC', // Light gray background
-		text: '#2C2C2C', // Dark text
-		lightText: '#757575', // Light text
+		text: '#33001a', // Dark maroon text
+		lightText: '#33001a', // Dark maroon text
 		success: '#00A389', // Green
 		warning: '#FFB800', // Yellow
 		error: '#FF3B6B', // Red
-		chartColors: ['#1E5AF6', '#FC6E27', '#00A389'] // Blue, Orange, Green for the three skills
+		chartColors: ['#800020', '#FC6E27', '#00A389'] // Maroon, Orange, Green for the three skills
 	};
 
 	onMount(async () => {
@@ -528,23 +528,13 @@
 
 <style>
 	.dashboard {
-		font-family:
-			'Inter',
-			-apple-system,
-			BlinkMacSystemFont,
-			'Segoe UI',
-			Roboto,
-			Oxygen,
-			Ubuntu,
-			Cantarell,
-			'Open Sans',
-			'Helvetica Neue',
-			sans-serif;
+		font-family: 'Roboto', sans-serif;
 		max-width: 1200px;
 		margin: 0 auto;
 		padding: 2rem;
 		background-color: var(--background);
-		color: var(--text);
+		color: #33001a;
+		font-weight: 500;
 	}
 
 	header {
@@ -553,15 +543,18 @@
 	}
 
 	header h1 {
-		font-size: 2.5rem;
-		font-weight: 700;
-		color: var(--primary);
+		font-size: 2.75rem;
+		font-weight: 900;
+		color: #33001a;
 		margin-bottom: 0.5rem;
+		font-family: 'Roboto Slab', serif;
+		letter-spacing: -0.02em;
 	}
 
 	header p {
-		font-size: 1.125rem;
-		color: var(--light-text);
+		font-size: 1.25rem;
+		color: #33001a;
+		font-weight: 500;
 	}
 
 	.dashboard-content {
@@ -583,10 +576,12 @@
 	}
 
 	h2 {
-		font-size: 1.5rem;
-		font-weight: 600;
+		font-size: 1.75rem;
+		font-weight: 700;
 		margin-bottom: 1rem;
-		color: var(--primary);
+		color: #33001a;
+		font-family: 'Roboto Slab', serif;
+		letter-spacing: -0.02em;
 	}
 
 	.filter-controls {
@@ -622,9 +617,11 @@
 		border: none;
 		border-radius: 6px;
 		padding: 0.75rem 1.5rem;
-		font-weight: 500;
+		font-weight: 700;
 		cursor: pointer;
 		transition: background-color 0.2s;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
 	}
 
 	.primary-button:hover,

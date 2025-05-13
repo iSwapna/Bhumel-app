@@ -7,11 +7,8 @@
 <div class="app">
 	<header>
 		<nav>
-			<a href="/" class="home-link">
-				<img src="/logo.png" alt="Bhumel Logo" class="logo" />
-			</a>
-
 			<div class="nav-tabs">
+				<a href="/" class="nav-tab">Home</a>
 				<a href="/discover" class="nav-tab">Discover</a>
 				<a href="/dashboard/skill-progression" class="nav-tab">Track</a>
 				<a href="/share" class="nav-tab">Share</a>
@@ -40,18 +37,22 @@
 </div>
 
 <style>
-	/* Import elegant fonts to match logo */
-	@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
+	/* Import strong, bold fonts */
+	@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;500;600;700;900&family=Roboto:wght@400;500;700;900&display=swap');
 
 	:global(body) {
-		font-family: 'Montserrat', sans-serif;
+		font-family: 'Roboto', sans-serif;
 		margin: 0;
 		padding: 0;
+		color: #33001a;
+		font-weight: 500;
 	}
 
 	:global(h1, h2, h3, h4, h5, h6) {
-		font-family: 'Playfair Display', serif;
-		color: #800020;
+		font-family: 'Roboto Slab', serif;
+		color: #33001a;
+		font-weight: 700;
+		letter-spacing: -0.02em;
 	}
 
 	.app {
@@ -74,38 +75,30 @@
 		align-items: center;
 		max-width: 1200px;
 		margin: 0 auto;
-		padding: 0.5rem 2rem;
-	}
-
-	.home-link {
-		display: flex;
-		align-items: center;
-	}
-
-	.logo {
-		height: 50px;
-		width: auto;
+		padding: 0.75rem 2rem;
 	}
 
 	.nav-tabs {
 		display: flex;
-		gap: 3rem;
+		gap: 4rem;
+		margin: 0 auto;
 	}
 
 	.nav-tab {
-		color: #800020; /* Maroon color */
+		color: #33001a;
 		text-decoration: none;
-		font-family: 'Playfair Display', serif;
-		font-weight: 500;
-		font-size: 1.1rem;
+		font-family: 'Roboto Slab', serif;
+		font-weight: 700;
+		font-size: 1.2rem;
 		padding: 1rem 0;
 		position: relative;
 		transition: color 0.2s;
-		letter-spacing: 0.5px;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
 	}
 
 	.nav-tab:hover {
-		color: #600018; /* Darker maroon */
+		color: #800020;
 	}
 
 	.nav-tab:after {
@@ -114,8 +107,8 @@
 		bottom: 0;
 		left: 0;
 		width: 0;
-		height: 2px;
-		background-color: #800020; /* Maroon color */
+		height: 3px;
+		background-color: #800020;
 		transition: width 0.3s;
 	}
 
@@ -134,37 +127,38 @@
 	}
 
 	.user-name {
-		font-weight: 500;
-		color: #800020; /* Maroon color */
-		font-family: 'Montserrat', sans-serif;
+		font-weight: 700;
+		color: #33001a;
+		font-family: 'Roboto', sans-serif;
 	}
 
 	.sign-in-btn,
 	.sign-out-btn {
-		padding: 0.5rem 1.2rem;
+		padding: 0.6rem 1.5rem;
 		border-radius: 4px;
-		font-weight: 500;
+		font-weight: 700;
 		transition: all 0.2s;
 		border: none;
 		font-size: 0.95rem;
 		cursor: pointer;
-		font-family: 'Montserrat', sans-serif;
-		letter-spacing: 0.5px;
+		font-family: 'Roboto', sans-serif;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
 	}
 
 	.sign-in-btn {
-		background-color: #800020; /* Maroon color */
+		background-color: #800020;
 		color: white;
 	}
 
 	.sign-out-btn {
-		color: #800020; /* Maroon color */
-		border: 1px solid #800020; /* Maroon color */
+		color: #33001a;
+		border: 2px solid #800020;
 		background-color: transparent;
 	}
 
 	.sign-in-btn:hover {
-		background-color: #600018; /* Darker maroon */
+		background-color: #600018;
 		transform: translateY(-1px);
 	}
 
@@ -182,11 +176,6 @@
 			flex-direction: column;
 			gap: 0.5rem;
 			padding: 0.5rem 1rem;
-		}
-
-		.logo {
-			height: 40px;
-			margin-bottom: 0.5rem;
 		}
 
 		.nav-tabs {

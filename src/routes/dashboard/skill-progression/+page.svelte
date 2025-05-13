@@ -448,7 +448,6 @@
 
 	.setup-section,
 	.filter-section,
-	.chart-section,
 	.recommendations-section,
 	.empty-state,
 	.loading-container,
@@ -485,8 +484,7 @@
 		font-weight: 500;
 	}
 
-	input,
-	select {
+	input {
 		padding: 0.75rem;
 		border: 1px solid #ddd;
 		border-radius: 6px;
@@ -516,76 +514,6 @@
 
 	.refresh-button:hover {
 		background-color: color-mix(in srgb, var(--secondary) 90%, black);
-	}
-
-	.chart-container {
-		height: 400px;
-		width: 100%;
-	}
-
-	.skill-summary {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-		gap: 1.5rem;
-	}
-
-	.skill-card {
-		background-color: white;
-		border-radius: 12px;
-		padding: 1.5rem;
-		border-top: 4px solid var(--primary);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-	}
-
-	.skill-card.cpp {
-		border-top-color: var(--primary);
-	}
-
-	.skill-card.algorithms {
-		border-top-color: var(--accent);
-	}
-
-	.skill-card.consistency {
-		border-top-color: var(--success);
-	}
-
-	.skill-card h3 {
-		font-size: 1.25rem;
-		margin-bottom: 1rem;
-		font-weight: 600;
-	}
-
-	.skill-level {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-bottom: 1rem;
-	}
-
-	.level {
-		font-size: 1.5rem;
-		font-weight: 700;
-	}
-
-	.trend {
-		font-size: 1.25rem;
-	}
-
-	.evidence {
-		font-size: 0.875rem;
-	}
-
-	.evidence p {
-		font-weight: 500;
-		margin-bottom: 0.5rem;
-	}
-
-	.evidence ul {
-		padding-left: 1.5rem;
-	}
-
-	.evidence li {
-		margin-bottom: 0.5rem;
 	}
 
 	.recommendations-section {
@@ -650,7 +578,6 @@
 			width: 100%;
 		}
 
-		.skill-summary,
 		.recommendations-section {
 			grid-template-columns: 1fr;
 		}

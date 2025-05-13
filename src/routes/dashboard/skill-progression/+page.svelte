@@ -1,33 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
-
-	// Chart.js for timeline visualization
-	import {
-		Chart,
-		LineElement,
-		PointElement,
-		LineController,
-		CategoryScale,
-		LinearScale,
-		Tooltip,
-		Legend
-	} from 'chart.js';
-	import type { TooltipItem } from 'chart.js';
-
-	// Register Chart.js components
-	if (browser) {
-		Chart.register(
-			LineElement,
-			PointElement,
-			LineController,
-			CategoryScale,
-			LinearScale,
-			Tooltip,
-			Legend
-		);
-	}
 
 	// Define types for our data structures
 	interface Skill {
@@ -40,25 +13,37 @@
 		skills: Skill[];
 	}
 
-	interface CumulativeSkill {
-		level: string;
-		trend: 'improving' | 'stable' | 'declining';
-		evidence: string[];
-	}
-
 	interface ProgressionData {
 		progression: ProgressionItem[];
-		cumulativeSkills: {
-			cpp: CumulativeSkill;
-			algorithms: CumulativeSkill;
-			consistency: CumulativeSkill;
-		};
 		overallGrowth: string;
 		recommendations: string[];
+		clrsAreas: {
+			foundations: {
+				coverage: number;
+				examples: string[];
+			};
+			divideAndConquer: {
+				coverage: number;
+				examples: string[];
+			};
+			dataStructures: {
+				coverage: number;
+				examples: string[];
+			};
+			advancedDesign: {
+				coverage: number;
+				examples: string[];
+			};
+			graphAlgorithms: {
+				coverage: number;
+				examples: string[];
+			};
+			selectedTopics: {
+				coverage: number;
+				examples: string[];
+			};
+		};
 	}
-
-	// Define Chart.js type and context
-	type ChartInstance = Chart<'line', number[], string>;
 
 	// State management
 	let loading = true;
@@ -66,8 +51,6 @@
 	let progressionData: ProgressionData | null = null;
 	let installationId = '';
 	let maxCommits = 10;
-	let timelineChart: ChartInstance | null = null;
-	let selectedSkill = 'all';
 	let dateRange: {
 		start: Date | null;
 		end: Date | null;
@@ -88,20 +71,6 @@
 		warning: '#FFB800', // Yellow
 		error: '#FF3B6B', // Red
 		chartColors: ['#1E5AF6', '#FC6E27', '#00A389'] // Blue, Orange, Green for the three skills
-	};
-
-	// Skill level mapping for numeric values
-	const skillLevelMap = {
-		beginner: 1,
-		intermediate: 2,
-		advanced: 3
-	};
-
-	// Trend icons
-	const trendIcons = {
-		improving: '↗️',
-		stable: '→',
-		declining: '↘️'
 	};
 
 	onMount(async () => {
@@ -145,9 +114,6 @@
 				dateRange.start = new Date(Math.min(...dates));
 				dateRange.end = new Date(Math.max(...dates));
 			}
-
-			// Initialize chart after data is loaded
-			initializeChart();
 		} catch (err: unknown) {
 			console.error('Error fetching data:', err);
 			if (err instanceof Error) {
@@ -160,140 +126,8 @@
 		}
 	}
 
-	function initializeChart() {
-		if (!browser || !progressionData || !progressionData.progression.length) return;
-
-		// Get the canvas element
-		const canvas = document.getElementById('skillProgressionChart') as HTMLCanvasElement | null;
-		if (!canvas) return;
-
-		// Destroy existing chart if it exists
-		if (timelineChart) {
-			timelineChart.destroy();
-		}
-
-		// Prepare data for chart
-		const filteredProgression = filterProgressionData();
-		const labels = filteredProgression.map((p) => {
-			const date = new Date(p.commitDate);
-			return date.toLocaleDateString();
-		});
-
-		// Extract skill levels for each skill type across progression
-		const datasets = [
-			{
-				label: 'C++',
-				data: extractSkillLevels(filteredProgression, 'C++'),
-				borderColor: colors.chartColors[0],
-				backgroundColor: `${colors.chartColors[0]}33`,
-				tension: 0.3
-			},
-			{
-				label: 'Algorithms',
-				data: extractSkillLevels(filteredProgression, 'Algorithm'),
-				borderColor: colors.chartColors[1],
-				backgroundColor: `${colors.chartColors[1]}33`,
-				tension: 0.3
-			},
-			{
-				label: 'Consistency',
-				data: extractSkillLevels(filteredProgression, 'Consistency'),
-				borderColor: colors.chartColors[2],
-				backgroundColor: `${colors.chartColors[2]}33`,
-				tension: 0.3
-			}
-		];
-
-		// Create the chart
-		timelineChart = new Chart(canvas, {
-			type: 'line',
-			data: {
-				labels,
-				datasets:
-					selectedSkill === 'all'
-						? datasets
-						: datasets.filter((d) => d.label.toLowerCase() === selectedSkill)
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				scales: {
-					y: {
-						min: 0,
-						max: 3.5,
-						ticks: {
-							callback: function (tickValue: string | number) {
-								if (tickValue === 1) return 'Beginner';
-								if (tickValue === 2) return 'Intermediate';
-								if (tickValue === 3) return 'Advanced';
-								return '';
-							}
-						},
-						grid: {
-							color: '#eaecef'
-						}
-					},
-					x: {
-						grid: {
-							color: '#eaecef'
-						}
-					}
-				},
-				plugins: {
-					tooltip: {
-						callbacks: {
-							title: function (context: { label: string }[]) {
-								return `Commit: ${context[0].label}`;
-							},
-							label: function (tooltipItem: TooltipItem<'line'>) {
-								const value = tooltipItem.raw as number;
-								let label = '';
-								if (value === 1) label = 'Beginner';
-								if (value === 2) label = 'Intermediate';
-								if (value === 3) label = 'Advanced';
-								return `${tooltipItem.dataset?.label || ''}: ${label}`;
-							}
-						}
-					},
-					legend: {
-						position: 'top'
-					}
-				}
-			}
-		});
-	}
-
-	function extractSkillLevels(
-		progression: { skills: { skill: string; level: string }[] }[],
-		skillType: string
-	) {
-		return progression.map((p) => {
-			const skill = p.skills.find((s) => s.skill.toLowerCase().includes(skillType.toLowerCase()));
-			const skillLevel = skill?.level?.toLowerCase();
-			return skillLevel && skillLevel in skillLevelMap
-				? skillLevelMap[skillLevel as keyof typeof skillLevelMap]
-				: 0;
-		});
-	}
-
-	function filterProgressionData() {
-		if (!progressionData || !progressionData.progression) return [];
-
-		let filtered = [...progressionData.progression];
-
-		// Apply date filter
-		if (dateRange.start && dateRange.end) {
-			filtered = filtered.filter((p) => {
-				const date = new Date(p.commitDate);
-				return date >= dateRange.start! && date <= dateRange.end!;
-			});
-		}
-
-		return filtered;
-	}
-
 	function handleFiltersChange() {
-		initializeChart();
+		// Update filtering
 	}
 
 	function handleInstallationSubmit() {
@@ -352,15 +186,6 @@
 				<h2>Filters</h2>
 				<div class="filter-controls">
 					<div class="filter-group">
-						<label for="skill-filter">Skill</label>
-						<select id="skill-filter" bind:value={selectedSkill} on:change={handleFiltersChange}>
-							<option value="all">All Skills</option>
-							<option value="c++">C++</option>
-							<option value="algorithms">Algorithms</option>
-							<option value="consistency">Consistency</option>
-						</select>
-					</div>
-					<div class="filter-group">
 						<label for="date-start">From</label>
 						<input
 							type="date"
@@ -386,77 +211,6 @@
 				</div>
 			</section>
 
-			<!-- Skill Summary Cards -->
-			<section class="skill-summary">
-				<div class="skill-card cpp">
-					<h3>C++ Skills</h3>
-					<div class="skill-level">
-						<span class="level">{progressionData.cumulativeSkills.cpp.level}</span>
-						<span class="trend"
-							>{trendIcons[
-								progressionData.cumulativeSkills.cpp.trend as keyof typeof trendIcons
-							]}</span
-						>
-					</div>
-					<div class="evidence">
-						<p>Key evidence:</p>
-						<ul>
-							{#each progressionData.cumulativeSkills.cpp.evidence.slice(0, 2) as evidence, i (i)}
-								<li>{evidence}</li>
-							{/each}
-						</ul>
-					</div>
-				</div>
-
-				<div class="skill-card algorithms">
-					<h3>Algorithm Skills</h3>
-					<div class="skill-level">
-						<span class="level">{progressionData.cumulativeSkills.algorithms.level}</span>
-						<span class="trend"
-							>{trendIcons[
-								progressionData.cumulativeSkills.algorithms.trend as keyof typeof trendIcons
-							]}</span
-						>
-					</div>
-					<div class="evidence">
-						<p>Key evidence:</p>
-						<ul>
-							{#each progressionData.cumulativeSkills.algorithms.evidence.slice(0, 2) as evidence, i (i)}
-								<li>{evidence}</li>
-							{/each}
-						</ul>
-					</div>
-				</div>
-
-				<div class="skill-card consistency">
-					<h3>Consistency</h3>
-					<div class="skill-level">
-						<span class="level">{progressionData.cumulativeSkills.consistency.level}</span>
-						<span class="trend"
-							>{trendIcons[
-								progressionData.cumulativeSkills.consistency.trend as keyof typeof trendIcons
-							]}</span
-						>
-					</div>
-					<div class="evidence">
-						<p>Key evidence:</p>
-						<ul>
-							{#each progressionData.cumulativeSkills.consistency.evidence.slice(0, 2) as evidence, i (i)}
-								<li>{evidence}</li>
-							{/each}
-						</ul>
-					</div>
-				</div>
-			</section>
-
-			<!-- Timeline Chart Section -->
-			<section class="chart-section">
-				<h2>Skills Progression Timeline</h2>
-				<div class="chart-container">
-					<canvas id="skillProgressionChart"></canvas>
-				</div>
-			</section>
-
 			<!-- Recommendations Section -->
 			<section class="recommendations-section">
 				<h2>Recommendations</h2>
@@ -472,6 +226,171 @@
 						{/each}
 					</ul>
 				</div>
+			</section>
+
+			<!-- CLRS Progress Section -->
+			<section class="clrs-progress-section">
+				<h2>CLRS Algorithm Coverage</h2>
+				<p>
+					Progress across different areas of "Introduction to Algorithms" by Cormen, Leiserson,
+					Rivest, and Stein
+				</p>
+
+				{#if progressionData.clrsAreas}
+					<div class="clrs-progress-bars">
+						<div class="clrs-area">
+							<div class="area-header">
+								<h3>Foundations (Ch. 1-3)</h3>
+								<span class="coverage-percent"
+									>{progressionData.clrsAreas.foundations.coverage}%</span
+								>
+							</div>
+							<div class="progress-container">
+								<div
+									class="progress-bar"
+									style="width: {progressionData.clrsAreas.foundations.coverage}%"
+								></div>
+							</div>
+							{#if progressionData.clrsAreas.foundations.examples.length > 0}
+								<div class="examples">
+									<h4>Examples:</h4>
+									<ul>
+										{#each progressionData.clrsAreas.foundations.examples.slice(0, 2) as example, i (i)}
+											<li>{example}</li>
+										{/each}
+									</ul>
+								</div>
+							{/if}
+						</div>
+
+						<div class="clrs-area">
+							<div class="area-header">
+								<h3>Divide-and-Conquer (Ch. 4-8)</h3>
+								<span class="coverage-percent"
+									>{progressionData.clrsAreas.divideAndConquer.coverage}%</span
+								>
+							</div>
+							<div class="progress-container">
+								<div
+									class="progress-bar"
+									style="width: {progressionData.clrsAreas.divideAndConquer.coverage}%"
+								></div>
+							</div>
+							{#if progressionData.clrsAreas.divideAndConquer.examples.length > 0}
+								<div class="examples">
+									<h4>Examples:</h4>
+									<ul>
+										{#each progressionData.clrsAreas.divideAndConquer.examples.slice(0, 2) as example, i (i)}
+											<li>{example}</li>
+										{/each}
+									</ul>
+								</div>
+							{/if}
+						</div>
+
+						<div class="clrs-area">
+							<div class="area-header">
+								<h3>Data Structures (Ch. 10-14)</h3>
+								<span class="coverage-percent"
+									>{progressionData.clrsAreas.dataStructures.coverage}%</span
+								>
+							</div>
+							<div class="progress-container">
+								<div
+									class="progress-bar"
+									style="width: {progressionData.clrsAreas.dataStructures.coverage}%"
+								></div>
+							</div>
+							{#if progressionData.clrsAreas.dataStructures.examples.length > 0}
+								<div class="examples">
+									<h4>Examples:</h4>
+									<ul>
+										{#each progressionData.clrsAreas.dataStructures.examples.slice(0, 2) as example, i (i)}
+											<li>{example}</li>
+										{/each}
+									</ul>
+								</div>
+							{/if}
+						</div>
+
+						<div class="clrs-area">
+							<div class="area-header">
+								<h3>Advanced Design & Analysis (Ch. 15-17)</h3>
+								<span class="coverage-percent"
+									>{progressionData.clrsAreas.advancedDesign.coverage}%</span
+								>
+							</div>
+							<div class="progress-container">
+								<div
+									class="progress-bar"
+									style="width: {progressionData.clrsAreas.advancedDesign.coverage}%"
+								></div>
+							</div>
+							{#if progressionData.clrsAreas.advancedDesign.examples.length > 0}
+								<div class="examples">
+									<h4>Examples:</h4>
+									<ul>
+										{#each progressionData.clrsAreas.advancedDesign.examples.slice(0, 2) as example, i (i)}
+											<li>{example}</li>
+										{/each}
+									</ul>
+								</div>
+							{/if}
+						</div>
+
+						<div class="clrs-area">
+							<div class="area-header">
+								<h3>Graph Algorithms (Ch. 22-26)</h3>
+								<span class="coverage-percent"
+									>{progressionData.clrsAreas.graphAlgorithms.coverage}%</span
+								>
+							</div>
+							<div class="progress-container">
+								<div
+									class="progress-bar"
+									style="width: {progressionData.clrsAreas.graphAlgorithms.coverage}%"
+								></div>
+							</div>
+							{#if progressionData.clrsAreas.graphAlgorithms.examples.length > 0}
+								<div class="examples">
+									<h4>Examples:</h4>
+									<ul>
+										{#each progressionData.clrsAreas.graphAlgorithms.examples.slice(0, 2) as example, i (i)}
+											<li>{example}</li>
+										{/each}
+									</ul>
+								</div>
+							{/if}
+						</div>
+
+						<div class="clrs-area">
+							<div class="area-header">
+								<h3>Selected Topics</h3>
+								<span class="coverage-percent"
+									>{progressionData.clrsAreas.selectedTopics.coverage}%</span
+								>
+							</div>
+							<div class="progress-container">
+								<div
+									class="progress-bar"
+									style="width: {progressionData.clrsAreas.selectedTopics.coverage}%"
+								></div>
+							</div>
+							{#if progressionData.clrsAreas.selectedTopics.examples.length > 0}
+								<div class="examples">
+									<h4>Examples:</h4>
+									<ul>
+										{#each progressionData.clrsAreas.selectedTopics.examples.slice(0, 2) as example, i (i)}
+											<li>{example}</li>
+										{/each}
+									</ul>
+								</div>
+							{/if}
+						</div>
+					</div>
+				{:else}
+					<p class="no-clrs-data">No CLRS algorithm coverage data available</p>
+				{/if}
 			</section>
 		</div>
 	{:else}
@@ -735,5 +654,92 @@
 		.recommendations-section {
 			grid-template-columns: 1fr;
 		}
+	}
+
+	/* CLRS Progress Bars Styles */
+	.clrs-progress-section {
+		background-color: white;
+		border-radius: 12px;
+		padding: 1.5rem;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+		margin-top: 2rem;
+	}
+
+	.clrs-progress-section > p {
+		margin-bottom: 1.5rem;
+		color: var(--light-text);
+	}
+
+	.clrs-progress-bars {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.clrs-area {
+		padding: 1rem;
+		background-color: #fafafa;
+		border-radius: 8px;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	}
+
+	.area-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.75rem;
+	}
+
+	.area-header h3 {
+		font-size: 1.1rem;
+		font-weight: 600;
+		margin: 0;
+	}
+
+	.coverage-percent {
+		font-weight: 700;
+		color: var(--primary);
+	}
+
+	.progress-container {
+		height: 12px;
+		background-color: #e9ecef;
+		border-radius: 6px;
+		overflow: hidden;
+		margin-bottom: 1rem;
+	}
+
+	.progress-bar {
+		height: 100%;
+		background: linear-gradient(to right, var(--primary), var(--secondary));
+		border-radius: 6px;
+		transition: width 0.5s ease;
+	}
+
+	.examples {
+		margin-top: 0.75rem;
+	}
+
+	.examples h4 {
+		font-size: 0.9rem;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+
+	.examples ul {
+		padding-left: 1.25rem;
+		margin: 0;
+	}
+
+	.examples li {
+		font-size: 0.85rem;
+		margin-bottom: 0.25rem;
+	}
+
+	.no-clrs-data {
+		text-align: center;
+		padding: 2rem;
+		color: var(--light-text);
+		font-style: italic;
 	}
 </style>

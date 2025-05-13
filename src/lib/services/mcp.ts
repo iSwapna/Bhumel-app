@@ -26,21 +26,30 @@ interface SkillProgressionPoint {
 
 interface SkillProgressionAnalysis {
 	progression: SkillProgressionPoint[];
-	cumulativeSkills: {
-		cpp: {
-			level: string;
-			trend: 'improving' | 'stable' | 'declining';
-			evidence: string[];
+	clrsAreas: {
+		foundations: {
+			coverage: number;
+			examples: string[];
 		};
-		algorithms: {
-			level: string;
-			trend: 'improving' | 'stable' | 'declining';
-			evidence: string[];
+		divideAndConquer: {
+			coverage: number;
+			examples: string[];
 		};
-		consistency: {
-			level: string;
-			trend: 'improving' | 'stable' | 'declining';
-			evidence: string[];
+		dataStructures: {
+			coverage: number;
+			examples: string[];
+		};
+		advancedDesign: {
+			coverage: number;
+			examples: string[];
+		};
+		graphAlgorithms: {
+			coverage: number;
+			examples: string[];
+		};
+		selectedTopics: {
+			coverage: number;
+			examples: string[];
 		};
 	};
 	overallGrowth: string;
@@ -194,21 +203,30 @@ export class MCPService {
 			// Return a basic analysis if API fails
 			return {
 				progression,
-				cumulativeSkills: {
-					cpp: {
-						level: 'unknown',
-						trend: 'stable',
-						evidence: ['Failed to analyze progression due to API error']
+				clrsAreas: {
+					foundations: {
+						coverage: 0,
+						examples: []
 					},
-					algorithms: {
-						level: 'unknown',
-						trend: 'stable',
-						evidence: ['Failed to analyze progression due to API error']
+					divideAndConquer: {
+						coverage: 0,
+						examples: []
 					},
-					consistency: {
-						level: 'unknown',
-						trend: 'stable',
-						evidence: ['Failed to analyze progression due to API error']
+					dataStructures: {
+						coverage: 0,
+						examples: []
+					},
+					advancedDesign: {
+						coverage: 0,
+						examples: []
+					},
+					graphAlgorithms: {
+						coverage: 0,
+						examples: []
+					},
+					selectedTopics: {
+						coverage: 0,
+						examples: []
 					}
 				},
 				overallGrowth: 'Unable to determine due to analysis error',
@@ -275,35 +293,49 @@ export class MCPService {
 		
 		${JSON.stringify(progression, null, 2)}
 		
-		Please provide a cumulative analysis focusing specifically on the progression of:
-		1. C++ skills
-		2. Algorithm knowledge and implementation
-		3. Consistency in coding practices
+		Using "Introduction to Algorithms" by Cormen, Leiserson, Rivest, and Stein (CLRS) as the coverage criteria, analyze the progression showing progress in different areas of CLRS over time.
+		
+		Specifically, evaluate progress in these key CLRS areas:
+		1. Foundations and Growth of Functions (Ch. 1-3)
+		2. Divide-and-Conquer and Sorting (Ch. 4-8)
+		3. Data Structures (Ch. 10-14)
+		4. Advanced Design & Analysis (Ch. 15-17, Dynamic Programming, Greedy)
+		5. Graph Algorithms (Ch. 22-26)
+		6. Selected Topics (String Matching, Computational Geometry, NP-Completeness)
 		
 		Format your response as JSON:
 		{
-			"cumulativeSkills": {
-				"cpp": {
-					"level": "beginner|intermediate|advanced",
-					"trend": "improving|stable|declining",
-					"evidence": ["string"]
+			"clrsAreas": {
+				"foundations": {
+					"coverage": 0-100,
+					"examples": ["string"]
 				},
-				"algorithms": {
-					"level": "beginner|intermediate|advanced",
-					"trend": "improving|stable|declining",
-					"evidence": ["string"]
+				"divideAndConquer": {
+					"coverage": 0-100,
+					"examples": ["string"]
 				},
-				"consistency": {
-					"level": "beginner|intermediate|advanced",
-					"trend": "improving|stable|declining",
-					"evidence": ["string"]
+				"dataStructures": {
+					"coverage": 0-100,
+					"examples": ["string"]
+				},
+				"advancedDesign": {
+					"coverage": 0-100,
+					"examples": ["string"]
+				},
+				"graphAlgorithms": {
+					"coverage": 0-100,
+					"examples": ["string"]
+				},
+				"selectedTopics": {
+					"coverage": 0-100,
+					"examples": ["string"]
 				}
 			},
 			"overallGrowth": "string",
 			"recommendations": ["string"]
 		}
 		
-		Focus on tracking skill development over time, identifying growth patterns, and spotting areas where the developer has shown improvement or needs more focus.
+		Focus on tracking skill development over time, identifying which CLRS areas have been covered, and spotting areas where the developer has shown improvement or needs more focus. The coverage percentage represents how much of each CLRS area has been demonstrated in the code.
 		`;
 	}
 
@@ -339,10 +371,13 @@ export class MCPService {
 			// Ensure the analysis has the expected structure
 			return {
 				progression,
-				cumulativeSkills: analysisData.cumulativeSkills || {
-					cpp: { level: 'unknown', trend: 'stable', evidence: [] },
-					algorithms: { level: 'unknown', trend: 'stable', evidence: [] },
-					consistency: { level: 'unknown', trend: 'stable', evidence: [] }
+				clrsAreas: analysisData.clrsAreas || {
+					foundations: { coverage: 0, examples: [] },
+					divideAndConquer: { coverage: 0, examples: [] },
+					dataStructures: { coverage: 0, examples: [] },
+					advancedDesign: { coverage: 0, examples: [] },
+					graphAlgorithms: { coverage: 0, examples: [] },
+					selectedTopics: { coverage: 0, examples: [] }
 				},
 				overallGrowth: analysisData.overallGrowth || 'Unable to determine',
 				recommendations: analysisData.recommendations || []

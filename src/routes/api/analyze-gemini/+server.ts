@@ -99,10 +99,13 @@ export const GET: RequestHandler = async ({ url }) => {
 						totalCommits: commits.length,
 						model: 'gemini-2.0-flash',
 						fallbackAnalysis: {
-							cumulativeSkills: {
-								cpp: { level: 'unknown', trend: 'stable', evidence: [] },
-								algorithms: { level: 'unknown', trend: 'stable', evidence: [] },
-								consistency: { level: 'unknown', trend: 'stable', evidence: [] }
+							clrsAreas: {
+								foundations: { coverage: 0, examples: [] },
+								divideAndConquer: { coverage: 0, examples: [] },
+								dataStructures: { coverage: 0, examples: [] },
+								advancedDesign: { coverage: 0, examples: [] },
+								graphAlgorithms: { coverage: 0, examples: [] },
+								selectedTopics: { coverage: 0, examples: [] }
 							},
 							overallGrowth: 'Unable to determine due to analysis error',
 							recommendations: ['Retry analysis later or check API key configuration']

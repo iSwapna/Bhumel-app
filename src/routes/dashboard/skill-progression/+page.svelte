@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 
 	// Define types for our data structures
 	interface Skill {
@@ -49,7 +48,8 @@
 	let loading = true;
 	let error: string | null = null;
 	let progressionData: ProgressionData | null = null;
-	let installationId = '';
+	let installationId = '66241334'; // Hardcoded installation ID
+	let repository = 'algol'; // Specify algol repo
 	let maxCommits = 10;
 	let dateRange: {
 		start: Date | null;
@@ -78,17 +78,8 @@
 	};
 
 	onMount(async () => {
-		// Get URL params if they exist
-		const urlParams = new URLSearchParams(window.location.search);
-		if (urlParams.has('installation_id')) {
-			const id = urlParams.get('installation_id');
-			if (id) {
-				installationId = id;
-				await fetchData();
-			}
-		} else {
-			loading = false;
-		}
+		// Directly fetch data with hardcoded installation ID
+		await fetchData();
 	});
 
 	async function fetchData() {
@@ -100,7 +91,7 @@
 		try {
 			// Initial fetch with first batch
 			const response = await fetch(
-				`/api/analyze-gemini?installation_id=${installationId}&max_commits=${maxCommits}&batch_size=${batchSize}`
+				`/api/analyze-gemini?installation_id=${installationId}&max_commits=${maxCommits}&batch_size=${batchSize}&repository=${repository}`
 			);
 
 			if (!response.ok) {
@@ -126,6 +117,7 @@
 							},
 							body: JSON.stringify({
 								installationId: data.installationId,
+								repository: repository,
 								commitBatch: data.commitBatches[batchId - 1], // Get the correct batch from the server
 								batchId,
 								totalBatches: data.totalBatches
@@ -244,10 +236,6 @@
 	function handleFiltersChange() {
 		// Update filtering
 	}
-
-	function handleInstallationSubmit() {
-		goto(`?installation_id=${installationId}&max_commits=${maxCommits}`);
-	}
 </script>
 
 <svelte:head>
@@ -265,25 +253,11 @@
 		<p>Track development skills over time with AI-powered analysis</p>
 	</header>
 
-	{#if !installationId}
-		<div class="setup-section">
-			<h2>Get Started</h2>
-			<div class="form-group">
-				<label for="installation-id">GitHub Installation ID</label>
-				<input
-					type="text"
-					id="installation-id"
-					bind:value={installationId}
-					placeholder="Enter your GitHub App installation ID"
-				/>
-			</div>
-			<div class="form-group">
-				<label for="max-commits">Maximum Commits to Analyze</label>
-				<input type="number" id="max-commits" bind:value={maxCommits} min="1" max="50" />
-			</div>
-			<button class="primary-button" on:click={handleInstallationSubmit}>Analyze Repository</button>
-		</div>
-	{:else if loading}
+	<div class="repository-highlight">
+		<h2>Repository: <span class="repo-name">{repository}</span></h2>
+	</div>
+
+	{#if loading}
 		<div class="loading-container">
 			<div class="loading-spinner"></div>
 			{#if processingBatches && batchProgress > 0}
@@ -292,14 +266,14 @@
 					<div class="batch-progress" style="width: {batchProgress}%"></div>
 				</div>
 			{:else}
-				<p>Analyzing commit history...</p>
+				<p>Analyzing {repository} repository commit history...</p>
 			{/if}
 		</div>
 	{:else if error}
 		<div class="error-container">
 			<h2>Error</h2>
 			<p>{error}</p>
-			<button class="primary-button" on:click={fetchData}>Try Again</button>
+			<button class="primary-button" on:click={fetchData}>Try Analyzing {repository} Again</button>
 		</div>
 	{:else if progressionData}
 		<div class="dashboard-content">
@@ -520,8 +494,8 @@
 	{:else}
 		<div class="empty-state">
 			<h2>No Data Available</h2>
-			<p>Try analyzing a repository to see skill progression data.</p>
-			<button class="primary-button" on:click={fetchData}>Analyze Repository</button>
+			<p>Click the button below to analyze the {repository} repository.</p>
+			<button class="primary-button" on:click={fetchData}>Analyze {repository} Repository</button>
 		</div>
 	{/if}
 </div>
@@ -535,6 +509,24 @@
 		background-color: var(--background);
 		color: #33001a;
 		font-weight: 500;
+	}
+
+	.repository-highlight {
+		background-color: white;
+		border-radius: 12px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+		padding: 1rem 1.5rem;
+		margin-bottom: 2rem;
+		text-align: center;
+	}
+
+	.repository-highlight h2 {
+		margin-bottom: 0;
+	}
+
+	.repo-name {
+		color: var(--primary);
+		font-weight: 700;
 	}
 
 	header {
@@ -563,7 +555,6 @@
 		gap: 2rem;
 	}
 
-	.setup-section,
 	.filter-section,
 	.recommendations-section,
 	.empty-state,
@@ -687,10 +678,6 @@
 	.empty-state {
 		text-align: center;
 		padding: 3rem;
-	}
-
-	.form-group {
-		margin-bottom: 1.5rem;
 	}
 
 	@media (min-width: 768px) {

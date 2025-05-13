@@ -214,17 +214,19 @@
 			<!-- Recommendations Section -->
 			<section class="recommendations-section">
 				<h2>Recommendations</h2>
-				<div class="overall-growth">
-					<h3>Overall Growth</h3>
-					<p>{progressionData.overallGrowth}</p>
-				</div>
-				<div class="recommendations-list">
-					<h3>Next Steps</h3>
-					<ul>
-						{#each progressionData.recommendations as recommendation, i (i)}
-							<li>{recommendation}</li>
-						{/each}
-					</ul>
+				<div class="recommendations-container">
+					<div class="overall-growth">
+						<h3>Overall Growth</h3>
+						<p>{progressionData.overallGrowth}</p>
+					</div>
+					<div class="recommendations-list">
+						<h3>Next Steps</h3>
+						<ul>
+							{#each progressionData.recommendations as recommendation, i (i)}
+								<li>{recommendation}</li>
+							{/each}
+						</ul>
+					</div>
 				</div>
 			</section>
 
@@ -517,14 +519,21 @@
 	}
 
 	.recommendations-section {
+		background-color: white;
+		border-radius: 12px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+		padding: 1.5rem;
+	}
+
+	.recommendations-container {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		grid-template-columns: 1fr;
 		gap: 1.5rem;
 	}
 
 	.overall-growth,
 	.recommendations-list {
-		background-color: white;
+		background-color: #fafafa;
 		border-radius: 12px;
 		padding: 1.5rem;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -565,6 +574,24 @@
 		margin-bottom: 1.5rem;
 	}
 
+	@media (min-width: 768px) {
+		.dashboard-content {
+			display: grid;
+			grid-template-columns: 2fr 1fr;
+			gap: 2rem;
+		}
+
+		.filter-section,
+		.clrs-progress-section {
+			grid-column: 1;
+		}
+
+		.recommendations-section {
+			grid-column: 2;
+			grid-row: span 2;
+		}
+	}
+
 	@media (max-width: 768px) {
 		.dashboard {
 			padding: 1rem;
@@ -578,8 +605,9 @@
 			width: 100%;
 		}
 
-		.recommendations-section {
-			grid-template-columns: 1fr;
+		.dashboard-content {
+			display: flex;
+			flex-direction: column;
 		}
 	}
 

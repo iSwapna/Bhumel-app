@@ -3,7 +3,6 @@
 
 	// The logo is in the static folder
 	const logoPath = '/logo.png';
-	const appName = 'Bhumel';
 </script>
 
 <div class="app">
@@ -11,18 +10,21 @@
 		<nav>
 			<div class="left">
 				<a href="/" class="logo-container">
-					<img src={logoPath} alt="{appName} Logo" class="logo" />
-					<span class="app-name">{appName}</span>
+					<img src={logoPath} alt="Bhumel Logo" class="logo" />
 				</a>
 			</div>
 			<div class="right">
 				{#if $page.data.session}
 					<div class="user-info">
 						<span class="user-name">{$page.data.session.user?.name || 'User'}</span>
-						<a href="/signout" class="sign-out-btn">Sign Out</a>
+						<form action="/signout" method="POST">
+							<button type="submit" class="sign-out-btn">Sign Out</button>
+						</form>
 					</div>
 				{:else}
-					<a href="/signin" class="sign-in-btn">Sign In</a>
+					<form action="/signin?provider=github" method="POST">
+						<button type="submit" class="sign-in-btn">Sign In with GitHub</button>
+					</form>
 				{/if}
 			</div>
 		</nav>
@@ -71,15 +73,8 @@
 	}
 
 	.logo {
-		height: 40px;
+		height: 60px;
 		width: auto;
-		margin-right: 0.75rem;
-	}
-
-	.app-name {
-		font-size: 1.5rem;
-		font-weight: 700;
-		color: #1e5af6;
 	}
 
 	.user-info {
@@ -97,8 +92,10 @@
 		padding: 0.5rem 1rem;
 		border-radius: 6px;
 		font-weight: 500;
-		text-decoration: none;
 		transition: background-color 0.2s;
+		border: none;
+		font-size: 1rem;
+		cursor: pointer;
 	}
 
 	.sign-in-btn {
@@ -109,6 +106,7 @@
 	.sign-out-btn {
 		color: #1e5af6;
 		border: 1px solid #1e5af6;
+		background-color: transparent;
 	}
 
 	.sign-in-btn:hover {
@@ -129,12 +127,8 @@
 			padding: 1rem;
 		}
 
-		.app-name {
-			font-size: 1.2rem;
-		}
-
 		.logo {
-			height: 32px;
+			height: 50px;
 		}
 	}
 </style>

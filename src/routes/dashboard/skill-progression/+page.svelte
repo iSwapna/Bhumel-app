@@ -1,5 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import type { PageData } from './$types';
+
+	// Get data provided by the server
+	export let data: PageData;
 
 	// Define types for our data structures
 	interface Skill {
@@ -48,8 +52,8 @@
 	let loading = true;
 	let error: string | null = null;
 	let progressionData: ProgressionData | null = null;
-	// Default installation ID - replace with your app's actual installation ID
-	let installationId = '42949799';
+	// Get installation ID from server data
+	let installationId = data.installationId;
 	let maxCommits = 10;
 	let dateRange: {
 		start: Date | null;

@@ -46,6 +46,32 @@ export class GitHubService {
 		}
 	}
 
+	async getUserInstallations(userToken: string): Promise<number | null> {
+		try {
+			// Create Octokit instance with user token
+			const octokit = new Octokit({ auth: userToken });
+
+			// Get installations for the authenticated user
+			const { data } = await octokit.apps.listInstallationsForAuthenticatedUser({
+				per_page: 100
+			});
+
+			// Find our app's installation
+			const appInstallation = data.installations.find(
+				(installation) => installation.app_id.toString() === this.appId
+			);
+
+			if (appInstallation) {
+				return appInstallation.id;
+			}
+
+			return null;
+		} catch (error) {
+			console.error('Error getting user installations:', error);
+			return null;
+		}
+	}
+
 	async getFirstRepository(
 		installationId: number
 	): Promise<{ owner: string; repo: string } | null> {

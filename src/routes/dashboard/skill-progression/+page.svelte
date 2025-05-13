@@ -211,187 +211,193 @@
 				</div>
 			</section>
 
-			<!-- Recommendations Section -->
-			<section class="recommendations-section">
-				<h2>Recommendations</h2>
-				<div class="overall-growth">
-					<h3>Overall Growth</h3>
-					<p>{progressionData.overallGrowth}</p>
+			<div class="dashboard-two-columns">
+				<!-- Recommendations Section (Left Column) -->
+				<div class="left-column">
+					<section class="recommendations-section">
+						<h2>Recommendations</h2>
+						<div class="overall-growth">
+							<h3>Overall Growth</h3>
+							<p>{progressionData.overallGrowth}</p>
+						</div>
+						<div class="recommendations-list">
+							<h3>Next Steps</h3>
+							<ul>
+								{#each progressionData.recommendations as recommendation, i (i)}
+									<li>{recommendation}</li>
+								{/each}
+							</ul>
+						</div>
+					</section>
 				</div>
-				<div class="recommendations-list">
-					<h3>Next Steps</h3>
-					<ul>
-						{#each progressionData.recommendations as recommendation, i (i)}
-							<li>{recommendation}</li>
-						{/each}
-					</ul>
+
+				<!-- CLRS Progress Section (Right Column) -->
+				<div class="right-column">
+					<section class="clrs-progress-section">
+						<h2>CLRS Algorithm Coverage</h2>
+						<p>
+							Progress across different areas of "Introduction to Algorithms" by Cormen, Leiserson,
+							Rivest, and Stein
+						</p>
+
+						{#if progressionData.clrsAreas}
+							<div class="clrs-progress-bars">
+								<div class="clrs-area">
+									<div class="area-header">
+										<h3>Foundations (Ch. 1-3)</h3>
+										<span class="coverage-percent"
+											>{progressionData.clrsAreas.foundations.coverage}%</span
+										>
+									</div>
+									<div class="progress-container">
+										<div
+											class="progress-bar"
+											style="width: {progressionData.clrsAreas.foundations.coverage}%"
+										></div>
+									</div>
+									{#if progressionData.clrsAreas.foundations.examples.length > 0}
+										<div class="examples">
+											<h4>Examples:</h4>
+											<ul>
+												{#each progressionData.clrsAreas.foundations.examples.slice(0, 2) as example, i (i)}
+													<li>{example}</li>
+												{/each}
+											</ul>
+										</div>
+									{/if}
+								</div>
+
+								<div class="clrs-area">
+									<div class="area-header">
+										<h3>Divide-and-Conquer (Ch. 4-8)</h3>
+										<span class="coverage-percent"
+											>{progressionData.clrsAreas.divideAndConquer.coverage}%</span
+										>
+									</div>
+									<div class="progress-container">
+										<div
+											class="progress-bar"
+											style="width: {progressionData.clrsAreas.divideAndConquer.coverage}%"
+										></div>
+									</div>
+									{#if progressionData.clrsAreas.divideAndConquer.examples.length > 0}
+										<div class="examples">
+											<h4>Examples:</h4>
+											<ul>
+												{#each progressionData.clrsAreas.divideAndConquer.examples.slice(0, 2) as example, i (i)}
+													<li>{example}</li>
+												{/each}
+											</ul>
+										</div>
+									{/if}
+								</div>
+
+								<div class="clrs-area">
+									<div class="area-header">
+										<h3>Data Structures (Ch. 10-14)</h3>
+										<span class="coverage-percent"
+											>{progressionData.clrsAreas.dataStructures.coverage}%</span
+										>
+									</div>
+									<div class="progress-container">
+										<div
+											class="progress-bar"
+											style="width: {progressionData.clrsAreas.dataStructures.coverage}%"
+										></div>
+									</div>
+									{#if progressionData.clrsAreas.dataStructures.examples.length > 0}
+										<div class="examples">
+											<h4>Examples:</h4>
+											<ul>
+												{#each progressionData.clrsAreas.dataStructures.examples.slice(0, 2) as example, i (i)}
+													<li>{example}</li>
+												{/each}
+											</ul>
+										</div>
+									{/if}
+								</div>
+
+								<div class="clrs-area">
+									<div class="area-header">
+										<h3>Advanced Design & Analysis (Ch. 15-17)</h3>
+										<span class="coverage-percent"
+											>{progressionData.clrsAreas.advancedDesign.coverage}%</span
+										>
+									</div>
+									<div class="progress-container">
+										<div
+											class="progress-bar"
+											style="width: {progressionData.clrsAreas.advancedDesign.coverage}%"
+										></div>
+									</div>
+									{#if progressionData.clrsAreas.advancedDesign.examples.length > 0}
+										<div class="examples">
+											<h4>Examples:</h4>
+											<ul>
+												{#each progressionData.clrsAreas.advancedDesign.examples.slice(0, 2) as example, i (i)}
+													<li>{example}</li>
+												{/each}
+											</ul>
+										</div>
+									{/if}
+								</div>
+
+								<div class="clrs-area">
+									<div class="area-header">
+										<h3>Graph Algorithms (Ch. 22-26)</h3>
+										<span class="coverage-percent"
+											>{progressionData.clrsAreas.graphAlgorithms.coverage}%</span
+										>
+									</div>
+									<div class="progress-container">
+										<div
+											class="progress-bar"
+											style="width: {progressionData.clrsAreas.graphAlgorithms.coverage}%"
+										></div>
+									</div>
+									{#if progressionData.clrsAreas.graphAlgorithms.examples.length > 0}
+										<div class="examples">
+											<h4>Examples:</h4>
+											<ul>
+												{#each progressionData.clrsAreas.graphAlgorithms.examples.slice(0, 2) as example, i (i)}
+													<li>{example}</li>
+												{/each}
+											</ul>
+										</div>
+									{/if}
+								</div>
+
+								<div class="clrs-area">
+									<div class="area-header">
+										<h3>Selected Topics</h3>
+										<span class="coverage-percent"
+											>{progressionData.clrsAreas.selectedTopics.coverage}%</span
+										>
+									</div>
+									<div class="progress-container">
+										<div
+											class="progress-bar"
+											style="width: {progressionData.clrsAreas.selectedTopics.coverage}%"
+										></div>
+									</div>
+									{#if progressionData.clrsAreas.selectedTopics.examples.length > 0}
+										<div class="examples">
+											<h4>Examples:</h4>
+											<ul>
+												{#each progressionData.clrsAreas.selectedTopics.examples.slice(0, 2) as example, i (i)}
+													<li>{example}</li>
+												{/each}
+											</ul>
+										</div>
+									{/if}
+								</div>
+							</div>
+						{:else}
+							<p class="no-clrs-data">No CLRS algorithm coverage data available</p>
+						{/if}
+					</section>
 				</div>
-			</section>
-
-			<!-- CLRS Progress Section -->
-			<section class="clrs-progress-section">
-				<h2>CLRS Algorithm Coverage</h2>
-				<p>
-					Progress across different areas of "Introduction to Algorithms" by Cormen, Leiserson,
-					Rivest, and Stein
-				</p>
-
-				{#if progressionData.clrsAreas}
-					<div class="clrs-progress-bars">
-						<div class="clrs-area">
-							<div class="area-header">
-								<h3>Foundations (Ch. 1-3)</h3>
-								<span class="coverage-percent"
-									>{progressionData.clrsAreas.foundations.coverage}%</span
-								>
-							</div>
-							<div class="progress-container">
-								<div
-									class="progress-bar"
-									style="width: {progressionData.clrsAreas.foundations.coverage}%"
-								></div>
-							</div>
-							{#if progressionData.clrsAreas.foundations.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.foundations.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
-						</div>
-
-						<div class="clrs-area">
-							<div class="area-header">
-								<h3>Divide-and-Conquer (Ch. 4-8)</h3>
-								<span class="coverage-percent"
-									>{progressionData.clrsAreas.divideAndConquer.coverage}%</span
-								>
-							</div>
-							<div class="progress-container">
-								<div
-									class="progress-bar"
-									style="width: {progressionData.clrsAreas.divideAndConquer.coverage}%"
-								></div>
-							</div>
-							{#if progressionData.clrsAreas.divideAndConquer.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.divideAndConquer.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
-						</div>
-
-						<div class="clrs-area">
-							<div class="area-header">
-								<h3>Data Structures (Ch. 10-14)</h3>
-								<span class="coverage-percent"
-									>{progressionData.clrsAreas.dataStructures.coverage}%</span
-								>
-							</div>
-							<div class="progress-container">
-								<div
-									class="progress-bar"
-									style="width: {progressionData.clrsAreas.dataStructures.coverage}%"
-								></div>
-							</div>
-							{#if progressionData.clrsAreas.dataStructures.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.dataStructures.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
-						</div>
-
-						<div class="clrs-area">
-							<div class="area-header">
-								<h3>Advanced Design & Analysis (Ch. 15-17)</h3>
-								<span class="coverage-percent"
-									>{progressionData.clrsAreas.advancedDesign.coverage}%</span
-								>
-							</div>
-							<div class="progress-container">
-								<div
-									class="progress-bar"
-									style="width: {progressionData.clrsAreas.advancedDesign.coverage}%"
-								></div>
-							</div>
-							{#if progressionData.clrsAreas.advancedDesign.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.advancedDesign.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
-						</div>
-
-						<div class="clrs-area">
-							<div class="area-header">
-								<h3>Graph Algorithms (Ch. 22-26)</h3>
-								<span class="coverage-percent"
-									>{progressionData.clrsAreas.graphAlgorithms.coverage}%</span
-								>
-							</div>
-							<div class="progress-container">
-								<div
-									class="progress-bar"
-									style="width: {progressionData.clrsAreas.graphAlgorithms.coverage}%"
-								></div>
-							</div>
-							{#if progressionData.clrsAreas.graphAlgorithms.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.graphAlgorithms.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
-						</div>
-
-						<div class="clrs-area">
-							<div class="area-header">
-								<h3>Selected Topics</h3>
-								<span class="coverage-percent"
-									>{progressionData.clrsAreas.selectedTopics.coverage}%</span
-								>
-							</div>
-							<div class="progress-container">
-								<div
-									class="progress-bar"
-									style="width: {progressionData.clrsAreas.selectedTopics.coverage}%"
-								></div>
-							</div>
-							{#if progressionData.clrsAreas.selectedTopics.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.selectedTopics.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
-						</div>
-					</div>
-				{:else}
-					<p class="no-clrs-data">No CLRS algorithm coverage data available</p>
-				{/if}
-			</section>
+			</div>
 		</div>
 	{:else}
 		<div class="empty-state">
@@ -517,8 +523,8 @@
 	}
 
 	.recommendations-section {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		display: flex;
+		flex-direction: column;
 		gap: 1.5rem;
 	}
 
@@ -565,6 +571,12 @@
 		margin-bottom: 1.5rem;
 	}
 
+	@media (max-width: 1024px) {
+		.dashboard-two-columns {
+			grid-template-columns: 1fr;
+		}
+	}
+
 	@media (max-width: 768px) {
 		.dashboard {
 			padding: 1rem;
@@ -578,7 +590,7 @@
 			width: 100%;
 		}
 
-		.recommendations-section {
+		.dashboard-two-columns {
 			grid-template-columns: 1fr;
 		}
 	}
@@ -668,5 +680,19 @@
 		padding: 2rem;
 		color: var(--light-text);
 		font-style: italic;
+	}
+
+	.dashboard-two-columns {
+		display: grid;
+		grid-template-columns: 300px 1fr;
+		gap: 2rem;
+	}
+
+	.left-column {
+		width: 100%;
+	}
+
+	.right-column {
+		width: 100%;
 	}
 </style>

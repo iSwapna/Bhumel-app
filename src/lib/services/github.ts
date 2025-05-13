@@ -35,16 +35,11 @@ export class GitHubService {
 
 	async getInstallationToken(installationId: number): Promise<string> {
 		try {
-			// Use the createAppAuth strategy directly for installations
-			const auth = createAppAuth({
-				appId: this.appId,
-				privateKey: this.privateKey,
+			const auth = (await this.octokit.auth({
+				type: 'installation',
 				installationId
-			});
-
-			// Request an installation token
-			const { token } = await auth({ type: 'installation' });
-			return token;
+			})) as { token: string };
+			return auth.token;
 		} catch (error) {
 			console.error('Error getting installation token:', error);
 			throw error;
@@ -61,19 +56,15 @@ export class GitHubService {
 				per_page: 100
 			});
 
-			console.log('Installations found:', data.installations.length);
-
 			// Find our app's installation
 			const appInstallation = data.installations.find(
 				(installation) => installation.app_id.toString() === this.appId
 			);
 
 			if (appInstallation) {
-				console.log('Found matching installation for app ID:', this.appId);
 				return appInstallation.id;
 			}
 
-			console.log('No matching installation found for app ID:', this.appId);
 			return null;
 		} catch (error) {
 			console.error('Error getting user installations:', error);

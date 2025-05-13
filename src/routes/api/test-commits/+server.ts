@@ -4,16 +4,14 @@ import { GitHubService } from '$lib/services/github';
 const githubService = new GitHubService();
 
 export const GET: RequestHandler = async ({ url }) => {
-	const owner = url.searchParams.get('owner');
-	const repo = url.searchParams.get('repo');
 	const installationId = url.searchParams.get('installation_id');
 
-	if (!owner || !repo || !installationId) {
-		return new Response('Missing required parameters', { status: 400 });
+	if (!installationId) {
+		return new Response('Missing installation_id parameter', { status: 400 });
 	}
 
 	try {
-		const commits = await githubService.getCommits(owner, repo, parseInt(installationId));
+		const commits = await githubService.getCommits(parseInt(installationId));
 		return new Response(JSON.stringify(commits), {
 			headers: {
 				'Content-Type': 'application/json'

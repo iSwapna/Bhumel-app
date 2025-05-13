@@ -12,6 +12,20 @@ vi.mock('@octokit/rest', () => {
 	return {
 		Octokit: vi.fn().mockImplementation(() => ({
 			auth: vi.fn().mockResolvedValue({ token: 'mock-token' }),
+			apps: {
+				listReposAccessibleToInstallation: vi.fn().mockResolvedValue({
+					data: {
+						repositories: [
+							{
+								name: 'test-repo',
+								owner: {
+									login: 'test-owner'
+								}
+							}
+						]
+					}
+				})
+			},
 			repos: {
 				listCommits: vi.fn().mockResolvedValue({
 					data: [
@@ -54,8 +68,16 @@ describe('GitHubService', () => {
 		githubService = new GitHubService();
 	});
 
-	it('should get commits from a repository', async () => {
-		const commits = await githubService.getCommits('test-owner', 'test-repo', 123);
+	it('should get the first repository from an installation', async () => {
+		const repo = await githubService.getFirstRepository(123);
+
+		expect(repo).toBeDefined();
+		expect(repo?.owner).toBe('test-owner');
+		expect(repo?.repo).toBe('test-repo');
+	});
+
+	it('should get commits from the first repository', async () => {
+		const commits = await githubService.getCommits(123);
 
 		expect(commits).toBeDefined();
 		expect(Array.isArray(commits)).toBe(true);
@@ -65,12 +87,7 @@ describe('GitHubService', () => {
 	});
 
 	it('should get commit details', async () => {
-		const commitDetails = await githubService.getCommitDetails(
-			'test-owner',
-			'test-repo',
-			'mock-sha',
-			123
-		);
+		const commitDetails = await githubService.getCommitDetails('mock-sha', 123);
 
 		expect(commitDetails).toBeDefined();
 		expect(commitDetails.sha).toBe('mock-sha');

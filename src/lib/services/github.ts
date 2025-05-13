@@ -46,8 +46,42 @@ export class GitHubService {
 		}
 	}
 
-	async getCommits(owner: string, repo: string, installationId: number): Promise<CommitsResponse> {
+	async getFirstRepository(
+		installationId: number
+	): Promise<{ owner: string; repo: string } | null> {
 		try {
+			const token = await this.getInstallationToken(installationId);
+			const octokit = new Octokit({ auth: token });
+
+			const { data } = await octokit.apps.listReposAccessibleToInstallation({
+				installation_id: installationId,
+				per_page: 1
+			});
+
+			if (data.repositories && data.repositories.length > 0) {
+				const repo = data.repositories[0];
+				return {
+					owner: repo.owner.login,
+					repo: repo.name
+				};
+			}
+
+			return null;
+		} catch (error) {
+			console.error('Error getting first repository:', error);
+			throw error;
+		}
+	}
+
+	async getCommits(installationId: number): Promise<CommitsResponse> {
+		try {
+			const repository = await this.getFirstRepository(installationId);
+
+			if (!repository) {
+				throw new Error('No repositories found for this installation');
+			}
+
+			const { owner, repo } = repository;
 			const token = await this.getInstallationToken(installationId);
 			const octokit = new Octokit({ auth: token });
 
@@ -64,13 +98,28 @@ export class GitHubService {
 		}
 	}
 
-	async getCommitDetails(
-		owner: string,
-		repo: string,
-		commitSha: string,
-		installationId: number
-	): Promise<CommitResponse> {
+	async getCommitsChronological(installationId: number): Promise<CommitsResponse> {
 		try {
+			// Get commits in default order (newest first)
+			const commits = await this.getCommits(installationId);
+
+			// Reverse to get oldest first
+			return commits.reverse();
+		} catch (error) {
+			console.error('Error getting chronological commits:', error);
+			throw error;
+		}
+	}
+
+	async getCommitDetails(commitSha: string, installationId: number): Promise<CommitResponse> {
+		try {
+			const repository = await this.getFirstRepository(installationId);
+
+			if (!repository) {
+				throw new Error('No repositories found for this installation');
+			}
+
+			const { owner, repo } = repository;
 			const token = await this.getInstallationToken(installationId);
 			const octokit = new Octokit({ auth: token });
 

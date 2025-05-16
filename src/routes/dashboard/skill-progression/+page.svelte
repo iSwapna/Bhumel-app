@@ -50,6 +50,13 @@
 		chartColors: ['#800020', '#FC6E27', '#00A389'] // Maroon, Orange, Green for the three skills
 	};
 
+	// Question and answer functionality
+	let questionInput = '';
+	let isProcessingQuestion = false;
+	let promptChain: Array<{ question: string; answer: string }> = [];
+	let currentChainLength = 0;
+	let maxChainLength = 2;
+
 	onMount(async () => {
 		// Only fetch data if we don't already have it
 		if (!$progressionStore) {
@@ -221,6 +228,76 @@
 	interface Skill {
 		skill: string;
 		level: string;
+	}
+
+	async function askQuestion(isRefinement = false) {
+		if (!questionInput.trim()) return;
+
+		isProcessingQuestion = true;
+
+		try {
+			// Create a new chain or continue the existing one
+			if (!isRefinement || currentChainLength >= maxChainLength) {
+				// Start a new chain
+				currentChainLength = 1;
+
+				const response = await fetch('/api/question', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						question: questionInput,
+						repository: repository,
+						isNewChain: true
+					})
+				});
+
+				if (!response.ok) throw new Error('Failed to process question');
+
+				const data = await response.json();
+				promptChain = [
+					{
+						question: questionInput,
+						answer: data.answer
+					}
+				];
+			} else {
+				// Continue the existing chain (refine)
+				currentChainLength++;
+
+				const response = await fetch('/api/question', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						question: questionInput,
+						repository: repository,
+						isNewChain: false,
+						previousQuestion: promptChain[promptChain.length - 1].question
+					})
+				});
+
+				if (!response.ok) throw new Error('Failed to process question');
+
+				const data = await response.json();
+				promptChain = [
+					...promptChain,
+					{
+						question: questionInput,
+						answer: data.answer
+					}
+				];
+			}
+
+			// Clear input after processing
+			questionInput = '';
+		} catch (error) {
+			console.error('Error processing question:', error);
+		} finally {
+			isProcessingQuestion = false;
+		}
 	}
 </script>
 
@@ -422,6 +499,72 @@
 				{:else}
 					<p class="no-clrs-data">No CLRS algorithm coverage data available</p>
 				{/if}
+			</section>
+
+			<!-- Question and Answer Section -->
+			<section class="question-section">
+				<h2>Ask About Your Progress</h2>
+				<div class="question-container">
+					<div class="question-input-group">
+						<label for="question-input">Ask a question about your progress</label>
+						<div class="input-with-buttons">
+							<input
+								type="text"
+								id="question-input"
+								bind:value={questionInput}
+								placeholder="e.g., What areas should I focus on improving next?"
+								disabled={isProcessingQuestion ||
+									(currentChainLength >= maxChainLength && promptChain.length > 0)}
+							/>
+							<div class="question-buttons">
+								<button
+									class="question-button refine"
+									on:click={() => askQuestion(true)}
+									disabled={isProcessingQuestion ||
+										currentChainLength >= maxChainLength ||
+										promptChain.length === 0}
+								>
+									Refine
+								</button>
+								<button
+									class="question-button new"
+									on:click={() => askQuestion(false)}
+									disabled={isProcessingQuestion || !questionInput.trim()}
+								>
+									New
+								</button>
+							</div>
+						</div>
+						{#if currentChainLength >= maxChainLength && promptChain.length > 0}
+							<div class="chain-limit-message">
+								<span>Chain limit reached. Click "New" to start a new question chain.</span>
+							</div>
+						{/if}
+					</div>
+
+					{#if isProcessingQuestion}
+						<div class="question-processing">
+							<div class="question-spinner"></div>
+							<p>Processing your question...</p>
+						</div>
+					{:else if promptChain.length > 0}
+						<div class="answers-container">
+							{#each promptChain as item, index (index)}
+								<div class="qa-item">
+									<div class="question">
+										<strong>Q: {item.question}</strong>
+										<span class="question-type"
+											>{index > 0 ? 'Refinement' : 'Initial question'}</span
+										>
+									</div>
+									<div class="answer">
+										<p>{item.answer}</p>
+									</div>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
 			</section>
 		</div>
 	{:else}
@@ -646,13 +789,14 @@
 		}
 
 		.filter-section,
-		.clrs-progress-section {
+		.clrs-progress-section,
+		.question-section {
 			grid-column: 1;
 		}
 
 		.recommendations-section {
 			grid-column: 2;
-			grid-row: span 2;
+			grid-row: span 3;
 		}
 	}
 
@@ -756,5 +900,141 @@
 		background: linear-gradient(to right, var(--primary), var(--secondary));
 		border-radius: 4px;
 		transition: width 0.3s ease;
+	}
+
+	/* Question Section Styles */
+	.question-section {
+		background-color: white;
+		border-radius: 12px;
+		padding: 1.5rem;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+		margin-top: 2rem;
+	}
+
+	.question-container {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.question-input-group {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.input-with-buttons {
+		display: flex;
+		gap: 0.75rem;
+	}
+
+	.input-with-buttons input {
+		flex: 1;
+		padding: 0.75rem;
+		border: 1px solid #ddd;
+		border-radius: 6px;
+		font-size: 1rem;
+	}
+
+	.input-with-buttons input:focus {
+		outline: none;
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px rgba(128, 0, 32, 0.2);
+	}
+
+	.question-buttons {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.question-button {
+		border: none;
+		border-radius: 6px;
+		padding: 0.75rem 1.25rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background-color 0.2s;
+	}
+
+	.question-button:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.question-button.refine {
+		background-color: var(--accent);
+		color: white;
+	}
+
+	.question-button.refine:hover:not(:disabled) {
+		background-color: color-mix(in srgb, var(--accent) 90%, black);
+	}
+
+	.question-button.new {
+		background-color: var(--primary);
+		color: white;
+	}
+
+	.question-button.new:hover:not(:disabled) {
+		background-color: color-mix(in srgb, var(--primary) 90%, black);
+	}
+
+	.chain-limit-message {
+		font-size: 0.85rem;
+		color: var(--accent);
+		margin-top: 0.5rem;
+	}
+
+	.question-processing {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+		padding: 2rem;
+		background-color: #fafafa;
+		border-radius: 8px;
+	}
+
+	.question-spinner {
+		width: 30px;
+		height: 30px;
+		border: 3px solid rgba(0, 0, 0, 0.1);
+		border-radius: 50%;
+		border-top-color: var(--primary);
+		animation: spin 1s ease-in-out infinite;
+	}
+
+	.answers-container {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.qa-item {
+		background-color: #fafafa;
+		border-radius: 8px;
+		padding: 1.5rem;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	}
+
+	.question {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 1rem;
+		padding-bottom: 0.75rem;
+		border-bottom: 1px solid #eee;
+	}
+
+	.question-type {
+		font-size: 0.8rem;
+		background-color: var(--accent);
+		color: white;
+		padding: 0.25rem 0.5rem;
+		border-radius: 12px;
+	}
+
+	.answer {
+		line-height: 1.6;
 	}
 </style>

@@ -249,7 +249,7 @@
 						</div>
 					{/each}
 				</div>
-				<a href="/dashboard/goals" class="view-all-link">Manage all goals →</a>
+				<a href="/dashboard/skill-progression" class="view-all-link">Manage all goals →</a>
 			</div>
 		</div>
 

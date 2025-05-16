@@ -139,6 +139,38 @@
 		warning: '#FFB800', // Yellow
 		error: '#FF3B6B' // Red
 	};
+
+	// Add goals data
+	const goals = [
+		{
+			id: 1,
+			title: 'Master Advanced Algorithms',
+			endDate: '2023-12-31',
+			progress: 75,
+			status: 'On track'
+		},
+		{
+			id: 2,
+			title: 'Complete System Design Course',
+			endDate: '2023-11-15',
+			progress: 60,
+			status: 'Needs attention'
+		},
+		{
+			id: 3,
+			title: 'Contribute to Open Source',
+			endDate: '2023-12-01',
+			progress: 40,
+			status: 'Behind schedule'
+		},
+		{
+			id: 4,
+			title: 'Learn GraphQL',
+			endDate: '2023-10-30',
+			progress: 90,
+			status: 'On track'
+		}
+	];
 </script>
 
 <svelte:head>
@@ -183,30 +215,41 @@
 			</div>
 
 			<div class="skills-card">
-				<h3>Your Top Skills</h3>
-				<ul class="skills-list">
-					<li>
-						<div class="skill-name">Algorithms</div>
-						<div class="skill-level">Advanced</div>
-					</li>
-					<li>
-						<div class="skill-name">Data Structures</div>
-						<div class="skill-level">Intermediate</div>
-					</li>
-					<li>
-						<div class="skill-name">System Design</div>
-						<div class="skill-level">Intermediate</div>
-					</li>
-					<li>
-						<div class="skill-name">JavaScript</div>
-						<div class="skill-level">Advanced</div>
-					</li>
-					<li>
-						<div class="skill-name">React</div>
-						<div class="skill-level">Intermediate</div>
-					</li>
-				</ul>
-				<a href="/dashboard/skill-progression" class="view-all-skills">View skill progression →</a>
+				<h3>Goals Summary</h3>
+				<div class="goals-list">
+					{#each goals as goal (goal.id)}
+						<div class="goal-item">
+							<div class="goal-header">
+								<h4 class="goal-title">{goal.title}</h4>
+								<div class="goal-date">Due: {new Date(goal.endDate).toLocaleDateString()}</div>
+							</div>
+							<div class="goal-progress-container">
+								<div class="goal-progress-bar">
+									<div
+										class="goal-progress-fill"
+										style="width: {goal.progress}%; background-color: {goal.progress >= 75
+											? 'var(--success)'
+											: goal.progress >= 50
+												? 'var(--warning)'
+												: 'var(--error)'}"
+									></div>
+								</div>
+								<div class="goal-progress-stats">
+									<span class="goal-progress-percent">{goal.progress}%</span>
+									<span
+										class="goal-status"
+										class:on-track={goal.status === 'On track'}
+										class:needs-attention={goal.status === 'Needs attention'}
+										class:behind={goal.status === 'Behind schedule'}
+									>
+										{goal.status}
+									</span>
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
+				<a href="/dashboard/goals" class="view-all-link">Manage all goals →</a>
 			</div>
 		</div>
 
@@ -516,37 +559,96 @@
 		color: var(--text);
 	}
 
-	.skills-list {
-		list-style: none;
-		padding: 0;
-		margin: 0;
+	/* Goals Styles */
+	.goals-list {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
 	}
 
-	.skills-list li {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
+	.goal-item {
 		padding: 0.75rem 0;
 		border-bottom: 1px solid #f0f0f0;
 	}
 
-	.skills-list li:last-child {
+	.goal-item:last-child {
 		border-bottom: none;
+		padding-bottom: 0;
 	}
 
-	.skill-name {
+	.goal-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		margin-bottom: 0.5rem;
+	}
+
+	.goal-title {
+		margin: 0;
+		font-size: 0.95rem;
 		font-weight: 600;
 	}
 
-	.skill-level {
-		font-size: 0.85rem;
-		color: var(--primary);
-		background-color: rgba(128, 0, 32, 0.1);
-		padding: 0.25rem 0.5rem;
+	.goal-date {
+		font-size: 0.75rem;
+		color: var(--light-text);
+		background-color: #f5f5f5;
+		padding: 0.2rem 0.4rem;
 		border-radius: 4px;
 	}
 
-	.view-all-skills {
+	.goal-progress-container {
+		margin-top: 0.5rem;
+	}
+
+	.goal-progress-bar {
+		height: 8px;
+		background-color: #e9ecef;
+		border-radius: 4px;
+		overflow: hidden;
+		margin-bottom: 0.5rem;
+	}
+
+	.goal-progress-fill {
+		height: 100%;
+		border-radius: 4px;
+		transition: width 0.3s ease;
+	}
+
+	.goal-progress-stats {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.goal-progress-percent {
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--text);
+	}
+
+	.goal-status {
+		font-size: 0.75rem;
+		padding: 0.15rem 0.4rem;
+		border-radius: 12px;
+	}
+
+	.goal-status.on-track {
+		background-color: rgba(0, 163, 137, 0.1);
+		color: var(--success);
+	}
+
+	.goal-status.needs-attention {
+		background-color: rgba(255, 184, 0, 0.1);
+		color: var(--warning);
+	}
+
+	.goal-status.behind {
+		background-color: rgba(255, 59, 107, 0.1);
+		color: var(--error);
+	}
+
+	.view-all-link {
 		display: block;
 		text-align: center;
 		margin-top: 1rem;
@@ -948,14 +1050,5 @@
 
 	.teammate-button:hover {
 		background-color: rgba(128, 0, 32, 0.05);
-	}
-
-	.view-all-link {
-		display: block;
-		text-align: center;
-		margin-top: 1rem;
-		color: var(--primary);
-		text-decoration: none;
-		font-weight: 600;
 	}
 </style>

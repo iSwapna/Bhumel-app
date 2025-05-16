@@ -1,29 +1,5 @@
 <script lang="ts">
 	// Mock data for LinkedIn-style feed
-	const connections = [
-		{
-			id: 1,
-			name: 'Aisha Johnson',
-			title: 'Software Engineer at TechCorp',
-			profileImage: 'https://i.pravatar.cc/150?img=1',
-			mutualConnections: 12
-		},
-		{
-			id: 2,
-			name: 'David Chen',
-			title: 'Full Stack Developer at StartupXYZ',
-			profileImage: 'https://i.pravatar.cc/150?img=2',
-			mutualConnections: 8
-		},
-		{
-			id: 3,
-			name: 'Sarah Williams',
-			title: 'Data Scientist at AI Solutions',
-			profileImage: 'https://i.pravatar.cc/150?img=3',
-			mutualConnections: 5
-		}
-	];
-
 	const posts = [
 		{
 			id: 1,
@@ -69,30 +45,85 @@
 		}
 	];
 
-	const jobRecommendations = [
+	// New mock data for the right panel
+	const newProjects = [
 		{
 			id: 1,
-			title: 'Senior Backend Engineer',
-			company: 'InnovateTech',
-			location: 'San Francisco, CA (Remote)',
-			matchPercentage: 92,
-			skills: ['Java', 'Microservices', 'Distributed Systems']
+			name: 'Algorithm Visualizer',
+			description: 'Interactive tool for visualizing common algorithms',
+			category: 'Educational Tools',
+			techStack: ['React', 'D3.js', 'TypeScript']
 		},
 		{
 			id: 2,
-			title: 'Algorithm Engineer',
-			company: 'DataSolutions Inc.',
-			location: 'Boston, MA',
-			matchPercentage: 87,
-			skills: ['Algorithms', 'Machine Learning', 'Python']
+			name: 'Distributed Cache System',
+			description: 'High-performance distributed caching implementation',
+			category: 'Backend Infrastructure',
+			techStack: ['Go', 'Redis', 'gRPC']
 		},
 		{
 			id: 3,
-			title: 'Full Stack Developer',
-			company: 'WebScale',
-			location: 'Remote',
-			matchPercentage: 85,
-			skills: ['JavaScript', 'React', 'Node.js', 'MongoDB']
+			name: 'Neural Code Search',
+			description: 'AI-powered code search and recommendation engine',
+			category: 'Developer Tools',
+			techStack: ['Python', 'PyTorch', 'FastAPI']
+		}
+	];
+
+	const mentors = [
+		{
+			id: 1,
+			name: 'Dr. Maya Rodriguez',
+			title: 'Principal Engineer at TechGiant',
+			specialties: ['Distributed Systems', 'System Design', 'Backend Architecture'],
+			profileImage: 'https://i.pravatar.cc/150?img=20',
+			rating: 4.9,
+			availability: 'Available next week'
+		},
+		{
+			id: 2,
+			name: 'Jason Kim',
+			title: 'Staff Engineer at CloudScale',
+			specialties: ['Algorithms', 'Data Structures', 'Interview Preparation'],
+			profileImage: 'https://i.pravatar.cc/150?img=21',
+			rating: 4.8,
+			availability: 'Available this weekend'
+		},
+		{
+			id: 3,
+			name: 'Aisha Patel',
+			title: 'Engineering Manager at StartupX',
+			specialties: ['Leadership', 'Career Growth', 'Frontend Development'],
+			profileImage: 'https://i.pravatar.cc/150?img=22',
+			rating: 4.7,
+			availability: 'Limited availability'
+		}
+	];
+
+	const teammates = [
+		{
+			id: 1,
+			name: 'Carlos Rivera',
+			title: 'Backend Developer',
+			skills: ['Node.js', 'MongoDB', 'GraphQL'],
+			profileImage: 'https://i.pravatar.cc/150?img=30',
+			sharedProjects: 3
+		},
+		{
+			id: 2,
+			name: 'Emma Wilson',
+			title: 'UX Designer',
+			skills: ['Figma', 'User Research', 'Prototyping'],
+			profileImage: 'https://i.pravatar.cc/150?img=31',
+			sharedProjects: 2
+		},
+		{
+			id: 3,
+			name: 'Raj Patel',
+			title: 'DevOps Engineer',
+			skills: ['Kubernetes', 'CI/CD', 'AWS'],
+			profileImage: 'https://i.pravatar.cc/150?img=32',
+			sharedProjects: 1
 		}
 	];
 
@@ -247,48 +278,86 @@
 		<!-- Right Column - Recommendations -->
 		<div class="recommendations-column">
 			<div class="recommendations-card">
-				<h3>People You May Know</h3>
-				<div class="connections-list">
-					{#each connections as connection (connection.id)}
-						<div class="connection-item">
-							<img src={connection.profileImage} alt={connection.name} class="connection-image" />
-							<div class="connection-info">
-								<h4>{connection.name}</h4>
-								<p>{connection.title}</p>
-								<span class="mutual-connections"
-									>{connection.mutualConnections} mutual connections</span
-								>
-							</div>
-							<button class="connection-button">Connect</button>
-						</div>
-					{/each}
-				</div>
-			</div>
-
-			<div class="recommendations-card">
-				<h3>Recommended Jobs</h3>
-				<div class="jobs-list">
-					{#each jobRecommendations as job (job.id)}
-						<div class="job-item">
-							<div class="job-info">
-								<h4>{job.title}</h4>
-								<p class="job-company">{job.company}</p>
-								<p class="job-location">{job.location}</p>
-								<div class="job-match">
-									<div class="match-indicator" style="width: {job.matchPercentage}%"></div>
-									<span class="match-text">{job.matchPercentage}% match</span>
-								</div>
-								<div class="job-skills">
-									{#each job.skills as skill (skill)}
-										<span class="skill-tag small">{skill}</span>
+				<h3>New Projects</h3>
+				<div class="projects-list">
+					{#each newProjects as project (project.id)}
+						<div class="project-item">
+							<div class="project-info">
+								<h4>{project.name}</h4>
+								<p class="project-description">{project.description}</p>
+								<div class="project-category">{project.category}</div>
+								<div class="project-stack">
+									{#each project.techStack as tech (tech)}
+										<span class="skill-tag small">{tech}</span>
 									{/each}
 								</div>
 							</div>
-							<button class="job-button">Apply</button>
+							<button class="project-button">Join</button>
 						</div>
 					{/each}
 				</div>
-				<a href="/jobs" class="view-all-jobs">See more jobs →</a>
+				<a href="/projects" class="view-all-link">Explore more projects →</a>
+			</div>
+
+			<div class="recommendations-card">
+				<h3>Mentors</h3>
+				<div class="mentors-list">
+					{#each mentors as mentor (mentor.id)}
+						<div class="mentor-item">
+							<img src={mentor.profileImage} alt={mentor.name} class="mentor-image" />
+							<div class="mentor-info">
+								<h4>{mentor.name}</h4>
+								<p class="mentor-title">{mentor.title}</p>
+								<div class="mentor-specialties">
+									{#each mentor.specialties.slice(0, 2) as specialty (specialty)}
+										<span class="skill-tag small">{specialty}</span>
+									{/each}
+									{#if mentor.specialties.length > 2}
+										<span class="more-specialties">+{mentor.specialties.length - 2}</span>
+									{/if}
+								</div>
+								<div class="mentor-availability">
+									<span class="availability-indicator"></span>
+									{mentor.availability}
+								</div>
+							</div>
+							<div class="mentor-rating">
+								<span class="rating-star">★</span>
+								<span class="rating-value">{mentor.rating}</span>
+							</div>
+							<button class="mentor-button">Connect</button>
+						</div>
+					{/each}
+				</div>
+				<a href="/mentors" class="view-all-link">Find more mentors →</a>
+			</div>
+
+			<div class="recommendations-card">
+				<h3>Team Mates</h3>
+				<div class="teammates-list">
+					{#each teammates as teammate (teammate.id)}
+						<div class="teammate-item">
+							<img src={teammate.profileImage} alt={teammate.name} class="teammate-image" />
+							<div class="teammate-info">
+								<h4>{teammate.name}</h4>
+								<p class="teammate-title">{teammate.title}</p>
+								<div class="teammate-skills">
+									{#each teammate.skills.slice(0, 2) as skill (skill)}
+										<span class="skill-tag small">{skill}</span>
+									{/each}
+									{#if teammate.skills.length > 2}
+										<span class="more-skills">+{teammate.skills.length - 2}</span>
+									{/if}
+								</div>
+								<div class="shared-projects">
+									{teammate.sharedProjects} shared project{teammate.sharedProjects !== 1 ? 's' : ''}
+								</div>
+							</div>
+							<button class="teammate-button">Message</button>
+						</div>
+					{/each}
+				</div>
+				<a href="/team" class="view-all-link">See all teammates →</a>
 			</div>
 		</div>
 	</div>
@@ -645,48 +714,161 @@
 		color: var(--text);
 	}
 
-	.connections-list,
-	.jobs-list {
+	.projects-list,
+	.mentors-list,
+	.teammates-list {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
 	}
 
-	.connection-item {
+	/* Project Item Styles */
+	.project-item {
+		border-bottom: 1px solid #f0f0f0;
+		padding-bottom: 1rem;
+		display: flex;
+		justify-content: space-between;
+	}
+
+	.project-item:last-child {
+		border-bottom: none;
+		padding-bottom: 0;
+	}
+
+	.project-info {
+		flex: 1;
+	}
+
+	.project-info h4 {
+		margin: 0 0 0.25rem;
+		font-size: 1rem;
+		font-weight: 600;
+	}
+
+	.project-description {
+		margin: 0.25rem 0;
+		font-size: 0.85rem;
+		color: var(--light-text);
+	}
+
+	.project-category {
+		display: inline-block;
+		background-color: rgba(252, 110, 39, 0.1);
+		color: var(--accent);
+		font-size: 0.75rem;
+		padding: 0.2rem 0.5rem;
+		border-radius: 12px;
+		margin: 0.25rem 0;
+	}
+
+	.project-stack {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+		margin-top: 0.5rem;
+	}
+
+	.project-button {
+		background-color: var(--primary);
+		color: white;
+		border: none;
+		border-radius: 16px;
+		padding: 0.4rem 0.75rem;
+		font-size: 0.8rem;
+		font-weight: 600;
+		cursor: pointer;
+		align-self: flex-start;
+		margin-left: 1rem;
+	}
+
+	.project-button:hover {
+		background-color: color-mix(in srgb, var(--primary) 90%, black);
+	}
+
+	/* Mentor Item Styles */
+	.mentor-item {
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
+		border-bottom: 1px solid #f0f0f0;
+		padding-bottom: 1rem;
 	}
 
-	.connection-image {
+	.mentor-item:last-child {
+		border-bottom: none;
+		padding-bottom: 0;
+	}
+
+	.mentor-image {
 		width: 48px;
 		height: 48px;
 		border-radius: 50%;
 		object-fit: cover;
 	}
 
-	.connection-info {
+	.mentor-info {
 		flex: 1;
 	}
 
-	.connection-info h4 {
+	.mentor-info h4 {
 		margin: 0;
 		font-size: 0.9rem;
 		font-weight: 600;
 	}
 
-	.connection-info p {
+	.mentor-title {
 		margin: 0.25rem 0;
 		font-size: 0.8rem;
 		color: var(--light-text);
 	}
 
-	.mutual-connections {
-		font-size: 0.75rem;
-		color: var(--light-text);
+	.mentor-specialties {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+		margin: 0.25rem 0;
 	}
 
-	.connection-button {
+	.more-specialties,
+	.more-skills {
+		font-size: 0.7rem;
+		color: var(--light-text);
+		background-color: #f5f5f5;
+		padding: 0.15rem 0.4rem;
+		border-radius: 12px;
+	}
+
+	.mentor-availability {
+		font-size: 0.7rem;
+		color: var(--light-text);
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		margin-top: 0.25rem;
+	}
+
+	.availability-indicator {
+		display: inline-block;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background-color: var(--success);
+	}
+
+	.mentor-rating {
+		display: flex;
+		align-items: center;
+		gap: 0.2rem;
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--warning);
+	}
+
+	.rating-star {
+		color: var(--warning);
+	}
+
+	.mentor-button {
 		background-color: white;
 		color: var(--primary);
 		border: 1px solid var(--primary);
@@ -695,79 +877,80 @@
 		font-size: 0.8rem;
 		font-weight: 600;
 		cursor: pointer;
+		white-space: nowrap;
 	}
 
-	.connection-button:hover {
+	.mentor-button:hover {
 		background-color: rgba(128, 0, 32, 0.05);
 	}
 
-	.job-item {
+	/* Teammate Item Styles */
+	.teammate-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
 		border-bottom: 1px solid #f0f0f0;
 		padding-bottom: 1rem;
 	}
 
-	.job-item:last-child {
+	.teammate-item:last-child {
 		border-bottom: none;
 		padding-bottom: 0;
 	}
 
-	.job-info h4 {
-		margin: 0 0 0.25rem;
-		font-size: 1rem;
+	.teammate-image {
+		width: 48px;
+		height: 48px;
+		border-radius: 50%;
+		object-fit: cover;
+	}
+
+	.teammate-info {
+		flex: 1;
+	}
+
+	.teammate-info h4 {
+		margin: 0;
+		font-size: 0.9rem;
 		font-weight: 600;
 	}
 
-	.job-company,
-	.job-location {
+	.teammate-title {
 		margin: 0.25rem 0;
-		font-size: 0.85rem;
+		font-size: 0.8rem;
 		color: var(--light-text);
 	}
 
-	.job-match {
-		margin: 0.75rem 0;
-		position: relative;
-	}
-
-	.match-indicator {
-		height: 6px;
-		background-color: var(--success);
-		border-radius: 3px;
-	}
-
-	.match-text {
-		font-size: 0.75rem;
-		color: var(--success);
-		font-weight: 600;
-		margin-top: 0.25rem;
-		display: inline-block;
-	}
-
-	.job-skills {
+	.teammate-skills {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.25rem;
-		margin: 0.5rem 0;
+		margin: 0.25rem 0;
 	}
 
-	.job-button {
-		background-color: var(--primary);
-		color: white;
-		border: none;
+	.shared-projects {
+		font-size: 0.7rem;
+		color: var(--light-text);
+		margin-top: 0.25rem;
+	}
+
+	.teammate-button {
+		background-color: white;
+		color: var(--primary);
+		border: 1px solid var(--primary);
 		border-radius: 16px;
-		padding: 0.5rem 1rem;
+		padding: 0.4rem 0.75rem;
 		font-size: 0.8rem;
 		font-weight: 600;
 		cursor: pointer;
-		display: inline-block;
-		margin-top: 0.5rem;
+		white-space: nowrap;
 	}
 
-	.job-button:hover {
-		background-color: color-mix(in srgb, var(--primary) 90%, black);
+	.teammate-button:hover {
+		background-color: rgba(128, 0, 32, 0.05);
 	}
 
-	.view-all-jobs {
+	.view-all-link {
 		display: block;
 		text-align: center;
 		margin-top: 1rem;

@@ -484,7 +484,7 @@
 
 	.profile-background {
 		height: 100px;
-		background: linear-gradient(to right, var(--primary), var(--accent));
+		background: var(--primary);
 	}
 
 	.profile-picture {

@@ -50,6 +50,13 @@
 		chartColors: ['#800020', '#FC6E27', '#00A389'] // Maroon, Orange, Green for the three skills
 	};
 
+	// Question and answer functionality
+	let questionInput = '';
+	let isProcessingQuestion = false;
+	let promptChain: Array<{ question: string; answer: string }> = [];
+	let currentChainLength = 0;
+	let maxChainLength = 2;
+
 	onMount(async () => {
 		// Only fetch data if we don't already have it
 		if (!$progressionStore) {
@@ -222,6 +229,76 @@
 		skill: string;
 		level: string;
 	}
+
+	async function askQuestion(isRefinement = false) {
+		if (!questionInput.trim()) return;
+
+		isProcessingQuestion = true;
+
+		try {
+			// Create a new chain or continue the existing one
+			if (!isRefinement || currentChainLength >= maxChainLength) {
+				// Start a new chain
+				currentChainLength = 1;
+
+				const response = await fetch('/api/question', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						question: questionInput,
+						repository: repository,
+						isNewChain: true
+					})
+				});
+
+				if (!response.ok) throw new Error('Failed to process question');
+
+				const data = await response.json();
+				promptChain = [
+					{
+						question: questionInput,
+						answer: data.answer
+					}
+				];
+			} else {
+				// Continue the existing chain (refine)
+				currentChainLength++;
+
+				const response = await fetch('/api/question', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						question: questionInput,
+						repository: repository,
+						isNewChain: false,
+						previousQuestion: promptChain[promptChain.length - 1].question
+					})
+				});
+
+				if (!response.ok) throw new Error('Failed to process question');
+
+				const data = await response.json();
+				promptChain = [
+					...promptChain,
+					{
+						question: questionInput,
+						answer: data.answer
+					}
+				];
+			}
+
+			// Clear input after processing
+			questionInput = '';
+		} catch (error) {
+			console.error('Error processing question:', error);
+		} finally {
+			isProcessingQuestion = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -235,12 +312,19 @@
                              --success: {colors.success}; --warning: {colors.warning}; --error: {colors.error};"
 >
 	<header>
-		<h1>Skill Progression Dashboard</h1>
+		<h1>Track a Project</h1>
 		<p>Track development skills over time with AI-powered analysis</p>
 	</header>
 
 	<div class="repository-highlight">
-		<h2>Repository: <span class="repo-name">{repository}</span></h2>
+		<h2>Repository</h2>
+		<div class="repo-selector">
+			<select bind:value={repository} on:change={fetchData}>
+				<option value="algol">Algol</option>
+				<option value="bhumel-app">Bhumel App</option>
+				<option value="hume">Hume</option>
+			</select>
+		</div>
 	</div>
 
 	{#if loading}
@@ -252,14 +336,14 @@
 					<div class="batch-progress" style="width: {batchProgress}%"></div>
 				</div>
 			{:else}
-				<p>Analyzing {repository} repository commit history...</p>
+				<p>Analyzing project commits...</p>
 			{/if}
 		</div>
 	{:else if error}
 		<div class="error-container">
 			<h2>Error</h2>
 			<p>{error}</p>
-			<button class="primary-button" on:click={fetchData}>Try Analyzing {repository} Again</button>
+			<button class="primary-button" on:click={fetchData}>Try Again</button>
 		</div>
 	{:else if progressionData}
 		<div class="dashboard-content">
@@ -335,16 +419,6 @@
 									style="width: {progressionData.clrsAreas.foundations.coverage}%"
 								></div>
 							</div>
-							{#if progressionData.clrsAreas.foundations.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.foundations.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
 						</div>
 
 						<div class="clrs-area">
@@ -360,16 +434,6 @@
 									style="width: {progressionData.clrsAreas.divideAndConquer.coverage}%"
 								></div>
 							</div>
-							{#if progressionData.clrsAreas.divideAndConquer.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.divideAndConquer.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
 						</div>
 
 						<div class="clrs-area">
@@ -385,16 +449,6 @@
 									style="width: {progressionData.clrsAreas.dataStructures.coverage}%"
 								></div>
 							</div>
-							{#if progressionData.clrsAreas.dataStructures.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.dataStructures.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
 						</div>
 
 						<div class="clrs-area">
@@ -410,16 +464,6 @@
 									style="width: {progressionData.clrsAreas.advancedDesign.coverage}%"
 								></div>
 							</div>
-							{#if progressionData.clrsAreas.advancedDesign.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.advancedDesign.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
 						</div>
 
 						<div class="clrs-area">
@@ -435,16 +479,6 @@
 									style="width: {progressionData.clrsAreas.graphAlgorithms.coverage}%"
 								></div>
 							</div>
-							{#if progressionData.clrsAreas.graphAlgorithms.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.graphAlgorithms.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
 						</div>
 
 						<div class="clrs-area">
@@ -460,28 +494,84 @@
 									style="width: {progressionData.clrsAreas.selectedTopics.coverage}%"
 								></div>
 							</div>
-							{#if progressionData.clrsAreas.selectedTopics.examples.length > 0}
-								<div class="examples">
-									<h4>Examples:</h4>
-									<ul>
-										{#each progressionData.clrsAreas.selectedTopics.examples.slice(0, 2) as example, i (i)}
-											<li>{example}</li>
-										{/each}
-									</ul>
-								</div>
-							{/if}
 						</div>
 					</div>
 				{:else}
 					<p class="no-clrs-data">No CLRS algorithm coverage data available</p>
 				{/if}
 			</section>
+
+			<!-- Question and Answer Section -->
+			<section class="question-section">
+				<h2>Ask About Your Progress</h2>
+				<div class="question-container">
+					<div class="question-input-group">
+						<label for="question-input">Ask a question about your progress</label>
+						<div class="input-with-buttons">
+							<input
+								type="text"
+								id="question-input"
+								bind:value={questionInput}
+								placeholder="e.g., What areas should I focus on improving next?"
+								disabled={isProcessingQuestion ||
+									(currentChainLength >= maxChainLength && promptChain.length > 0)}
+							/>
+							<div class="question-buttons">
+								<button
+									class="question-button refine"
+									on:click={() => askQuestion(true)}
+									disabled={isProcessingQuestion ||
+										currentChainLength >= maxChainLength ||
+										promptChain.length === 0}
+								>
+									Refine
+								</button>
+								<button
+									class="question-button new"
+									on:click={() => askQuestion(false)}
+									disabled={isProcessingQuestion || !questionInput.trim()}
+								>
+									New
+								</button>
+							</div>
+						</div>
+						{#if currentChainLength >= maxChainLength && promptChain.length > 0}
+							<div class="chain-limit-message">
+								<span>Chain limit reached. Click "New" to start a new question chain.</span>
+							</div>
+						{/if}
+					</div>
+
+					{#if isProcessingQuestion}
+						<div class="question-processing">
+							<div class="question-spinner"></div>
+							<p>Processing your question...</p>
+						</div>
+					{:else if promptChain.length > 0}
+						<div class="answers-container">
+							{#each promptChain as item, index (index)}
+								<div class="qa-item">
+									<div class="question">
+										<strong>Q: {item.question}</strong>
+										<span class="question-type"
+											>{index > 0 ? 'Refinement' : 'Initial question'}</span
+										>
+									</div>
+									<div class="answer">
+										<p>{item.answer}</p>
+									</div>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			</section>
 		</div>
 	{:else}
 		<div class="empty-state">
 			<h2>No Data Available</h2>
-			<p>Click the button below to analyze the {repository} repository.</p>
-			<button class="primary-button" on:click={fetchData}>Analyze {repository} Repository</button>
+			<p>Select a repository and click the button below to analyze it.</p>
+			<button class="primary-button" on:click={fetchData}>Analyze Project</button>
 		</div>
 	{/if}
 </div>
@@ -507,12 +597,37 @@
 	}
 
 	.repository-highlight h2 {
-		margin-bottom: 0;
+		margin-bottom: 0.75rem;
 	}
 
-	.repo-name {
+	.repo-selector {
+		max-width: 300px;
+		margin: 0 auto;
+	}
+
+	.repo-selector select {
+		width: 100%;
+		padding: 0.75rem;
+		border-radius: 6px;
+		border: 1px solid #ddd;
+		background-color: white;
+		font-size: 1rem;
+		font-weight: 500;
 		color: var(--primary);
-		font-weight: 700;
+		cursor: pointer;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		appearance: none;
+		background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24'%3e%3cpath fill='none' d='M0 0h24v24H0z'/%3e%3cpath d='M12 15l-4.243-4.243 1.415-1.414L12 12.172l2.828-2.829 1.415 1.414z' fill='%23800020'/%3e%3c/svg%3e");
+		background-repeat: no-repeat;
+		background-position: right 10px center;
+		background-size: 20px;
+	}
+
+	.repo-selector select:focus {
+		outline: none;
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px rgba(128, 0, 32, 0.2);
 	}
 
 	header {
@@ -674,13 +789,14 @@
 		}
 
 		.filter-section,
-		.clrs-progress-section {
+		.clrs-progress-section,
+		.question-section {
 			grid-column: 1;
 		}
 
 		.recommendations-section {
 			grid-column: 2;
-			grid-row: span 2;
+			grid-row: span 3;
 		}
 	}
 
@@ -763,26 +879,6 @@
 		transition: width 0.5s ease;
 	}
 
-	.examples {
-		margin-top: 0.75rem;
-	}
-
-	.examples h4 {
-		font-size: 0.9rem;
-		font-weight: 600;
-		margin-bottom: 0.5rem;
-	}
-
-	.examples ul {
-		padding-left: 1.25rem;
-		margin: 0;
-	}
-
-	.examples li {
-		font-size: 0.85rem;
-		margin-bottom: 0.25rem;
-	}
-
 	.no-clrs-data {
 		text-align: center;
 		padding: 2rem;
@@ -804,5 +900,141 @@
 		background: linear-gradient(to right, var(--primary), var(--secondary));
 		border-radius: 4px;
 		transition: width 0.3s ease;
+	}
+
+	/* Question Section Styles */
+	.question-section {
+		background-color: white;
+		border-radius: 12px;
+		padding: 1.5rem;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+		margin-top: 2rem;
+	}
+
+	.question-container {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.question-input-group {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.input-with-buttons {
+		display: flex;
+		gap: 0.75rem;
+	}
+
+	.input-with-buttons input {
+		flex: 1;
+		padding: 0.75rem;
+		border: 1px solid #ddd;
+		border-radius: 6px;
+		font-size: 1rem;
+	}
+
+	.input-with-buttons input:focus {
+		outline: none;
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px rgba(128, 0, 32, 0.2);
+	}
+
+	.question-buttons {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.question-button {
+		border: none;
+		border-radius: 6px;
+		padding: 0.75rem 1.25rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background-color 0.2s;
+	}
+
+	.question-button:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.question-button.refine {
+		background-color: var(--accent);
+		color: white;
+	}
+
+	.question-button.refine:hover:not(:disabled) {
+		background-color: color-mix(in srgb, var(--accent) 90%, black);
+	}
+
+	.question-button.new {
+		background-color: var(--primary);
+		color: white;
+	}
+
+	.question-button.new:hover:not(:disabled) {
+		background-color: color-mix(in srgb, var(--primary) 90%, black);
+	}
+
+	.chain-limit-message {
+		font-size: 0.85rem;
+		color: var(--accent);
+		margin-top: 0.5rem;
+	}
+
+	.question-processing {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+		padding: 2rem;
+		background-color: #fafafa;
+		border-radius: 8px;
+	}
+
+	.question-spinner {
+		width: 30px;
+		height: 30px;
+		border: 3px solid rgba(0, 0, 0, 0.1);
+		border-radius: 50%;
+		border-top-color: var(--primary);
+		animation: spin 1s ease-in-out infinite;
+	}
+
+	.answers-container {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.qa-item {
+		background-color: #fafafa;
+		border-radius: 8px;
+		padding: 1.5rem;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	}
+
+	.question {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 1rem;
+		padding-bottom: 0.75rem;
+		border-bottom: 1px solid #eee;
+	}
+
+	.question-type {
+		font-size: 0.8rem;
+		background-color: var(--accent);
+		color: white;
+		padding: 0.25rem 0.5rem;
+		border-radius: 12px;
+	}
+
+	.answer {
+		line-height: 1.6;
 	}
 </style>

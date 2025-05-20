@@ -8,6 +8,11 @@ node_modules
 /.svelte-kit
 /build
 
+# rust
+/target
+.cargo
+
+
 # OS
 .DS_Store
 Thumbs.db

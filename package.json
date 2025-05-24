@@ -4,6 +4,7 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
+		"setup": "node initialize.js",
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
@@ -26,6 +27,7 @@
 		"@testing-library/svelte": "^4.0.0",
 		"@types/node": "^22.15.3",
 		"commitlint": "^19.8.0",
+		"dotenv": "^16.5.0",
 		"eslint": "^9.18.0",
 		"eslint-config-prettier": "^10.0.1",
 		"eslint-plugin-svelte": "^3.0.0",
@@ -53,9 +55,14 @@
 		"@huggingface/inference": "^3.12.1",
 		"@octokit/auth-app": "^7.2.1",
 		"@octokit/rest": "^21.1.1",
+		"@stellar/stellar-sdk": "^13.3.0",
 		"chart.js": "^4.4.9",
+		"glob": "^11.0.2",
 		"my-puter-sdk": "^1.0.0",
+		"passkey-kit": "^0.10.24",
 		"puter": "^1.0.0",
-		"puter-sdk": "^1.4.2"
+		"puter-sdk": "^1.4.2",
+		"svelte-persisted-store": "^0.12.0",
+		"track": "file:packages/track"
 	}
 }

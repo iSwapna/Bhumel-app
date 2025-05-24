@@ -91,7 +91,7 @@ function deployAll() {
 	mkdirSync(contractsDir, { recursive: true });
 
 	// search for all compiled Wasm files
-	const wasmFiles = glob(`${dirname}/target/wasm32-unknown-unknown/release/*.wasm`);
+	const wasmFiles = glob(`${dirname}/target/wasm32v1-none/release/*.wasm`);
 
 	// run the `deploy()` function for each compiled Wasm file found
 	wasmFiles.forEach(deploy);

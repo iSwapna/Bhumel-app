@@ -4,7 +4,7 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"cont": "node initialize.js",
+		"setup": "node initialize.js",
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",

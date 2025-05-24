@@ -8,9 +8,10 @@ node_modules
 /.svelte-kit
 /build
 
-# rust
+# rust/stellar
 /target
 .cargo
+.stellar
 
 
 # OS

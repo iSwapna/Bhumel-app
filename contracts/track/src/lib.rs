@@ -1,36 +1,21 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, vec, Env, Vec, String};
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct GitCommit {
-    pub sha: String,
-    pub user: String,
-    pub timestamp: u64,
-}
+use soroban_sdk::{contract, contractimpl, symbol_short, Env, String, Address};
 
 #[contract]
 pub struct GitCommitTracker;
 
 #[contractimpl]
 impl GitCommitTracker {
-    pub fn record_commit(env: &Env, sha: String, user: String) -> GitCommit {
-        let commit = GitCommit {
-            sha: sha.clone(),
-            user: user.clone(),
-            timestamp: env.ledger().timestamp(),
-        };
+    pub fn commit(env: &Env, user: Address, sha: String) {
+        // Require authentication from the user
+        user.require_auth();
         
-        // Emit event for the commit
-        env.events().publish((symbol_short!("commit"), symbol_short!("recorded")), commit.clone());
-        
-        commit
+        env.storage().persistent().set(&symbol_short!("commit"), &sha);
+        env.events().publish((symbol_short!("commit"),), (user, sha.clone()));
     }
 
-    pub fn get_commits(env: &Env) -> Vec<GitCommit> {
-        // In a real implementation, this would query the contract's storage
-        // For now, we'll return an empty vector
-        vec![env]
+    pub fn get_commit(env: &Env) -> Option<String> {
+        env.storage().persistent().get(&symbol_short!("commit"))
     }
 }
 
@@ -39,17 +24,19 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_record_commit() {
+    fn test_commit_and_get() {
         let env = Env::default();
         let contract = GitCommitTracker;
         
-        let commit = contract.record_commit(
-            &env,
-            String::from_str(&env, "abc123"),
-            String::from_str(&env, "alice"),
-        );
-
-        assert_eq!(commit.user, String::from_str(&env, "alice"));
-        assert_eq!(commit.sha, String::from_str(&env, "abc123"));
+        let user = Address::generate(&env);
+        let sha = String::from_str(&env, "abc123");
+        
+        // Mock authentication for testing
+        env.mock_all_auths();
+        
+        contract.commit(&env, user, sha.clone());
+        
+        let retrieved_sha = contract.get_commit(&env).unwrap();
+        assert_eq!(retrieved_sha, sha);
     }
 } 

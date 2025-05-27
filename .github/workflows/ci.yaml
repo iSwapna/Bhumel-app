@@ -39,7 +39,16 @@ jobs:
           echo "AUTH_SECRET=DUMMY_BUILD_AUTH_SECRET" >> .env
           echo "GEMINI_API_KEY=DUMMY_GEMINI_API_KEY" >> .env
           echo "DEEPSEEK_API_KEY=DUMMY_DEEPSEEK_API_KEY" >> .env
-          echo "PUBLIC_STELLAR_RPC_URL" >> .env
+          echo "PUBLIC_STELLAR_RPC_URL=https://rpc.stellar.org" >> .env
+          echo "PRIVATE_MERCURY_KEY=JY5XS6Xg6s4IXsdb1cw1gVnUMvpxVodI" >> .env
+          echo "PRIVATE_LAUNCHTUBE_JWT=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c" >> .env
+          echo "PUBLIC_LAUNCHTUBE_URL=https://launchtube.com" >> .env
+          echo "PUBLIC_MERCURY_URL=https://mercury.com" >> .env
+          echo "PUBLIC_STELLAR_NETWORK_PASSPHRASE=Testnet" >> .env
+          echo "PUBLIC_NATIVE_CONTRACT_ADDRESS=GCKQ5455555555555555555555555555555555555555555555" >> .env
+          echo "PUBLIC_WALLET_WASM_HASH=GCKQ5455555555555555555555555555555555555555555555" >> .env
+          echo "PRIVATE_FUNDER_SECRET_KEY=GCKQ5455555555555555555555555555555555555555555555" >> .env
+          echo "PRIVATE_FUNDER_PUBLIC_KEY=GCKQ5455555555555555555555555555555555555555555555" >> .env
 
       - name: Type check
         run: pnpm typecheck

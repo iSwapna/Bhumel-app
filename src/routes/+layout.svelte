@@ -23,9 +23,14 @@
 						</form>
 					</div>
 				{:else}
-					<form action="/signin?provider=github" method="POST">
-						<button type="submit" class="sign-in-btn">Sign In</button>
-					</form>
+					<div class="auth-buttons">
+						<form action="/signin?provider=github" method="POST">
+							<button type="submit" class="sign-in-btn">Sign In</button>
+						</form>
+						<form action="/signup" method="GET">
+							<button type="submit" class="sign-up-btn">Sign Up</button>
+						</form>
+					</div>
 				{/if}
 			</div>
 		</nav>
@@ -133,7 +138,8 @@
 	}
 
 	.sign-in-btn,
-	.sign-out-btn {
+	.sign-out-btn,
+	.sign-up-btn {
 		padding: 0.6rem 1.5rem;
 		border-radius: 4px;
 		font-weight: 700;
@@ -151,6 +157,11 @@
 		color: white;
 	}
 
+	.sign-up-btn {
+		background-color: #33001a;
+		color: white;
+	}
+
 	.sign-out-btn {
 		color: #33001a;
 		border: 2px solid #800020;
@@ -162,9 +173,19 @@
 		transform: translateY(-1px);
 	}
 
+	.sign-up-btn:hover {
+		background-color: #1a000d;
+		transform: translateY(-1px);
+	}
+
 	.sign-out-btn:hover {
 		background-color: rgba(128, 0, 32, 0.05);
 		transform: translateY(-1px);
+	}
+
+	.auth-buttons {
+		display: flex;
+		gap: 1rem;
 	}
 
 	main {

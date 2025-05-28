@@ -9,6 +9,10 @@
 
 	import { initializeStores, Toast, Modal } from '@skeletonlabs/skeleton';
 	initializeStores();
+
+	function signup() {
+		window.location.href = '/signup';
+	}
 </script>
 
 <Toast />
@@ -37,9 +41,10 @@
 						<form action="/signin?provider=github" method="POST">
 							<button type="submit" class="sign-in-btn">Sign In</button>
 						</form>
-						<form action="/signup" method="POST">
+						<!-- <form action="/signup" method="POST">
 							<button type="submit" class="sign-up-btn">Sign Up</button>
-						</form>
+						</form> -->
+						<button class="sign-up-btn" onclick={signup}>Signup</button>
 					</div>
 				{/if}
 			</div>

@@ -34,13 +34,10 @@ if (typeof window !== 'undefined') {
 export const networks = {
   testnet: {
     networkPassphrase: "Test SDF Network ; September 2015",
-    contractId: "CB4ACEOEL4753V5SYYO7JM2TIZ6VOQ4TBCD5GYB7WD2TX2T4LPO2KXWU",
+    contractId: "CAYS7M2WWPVTOQYZIL3T2TZ77PJT35EKH5QVGHB3EVG3RQ4BEOW4XLWF",
   }
 } as const
 
-export const Errors = {
-
-}
 
 export interface Client {
   /**
@@ -86,7 +83,7 @@ export interface Client {
 }
 export class Client extends ContractClient {
   static async deploy<T = Client>(
-    /** Options for initalizing a Client as well as for calling a method, with extras specific to deploying. */
+    /** Options for initializing a Client as well as for calling a method, with extras specific to deploying. */
     options: MethodOptions &
       Omit<ContractClientOptions, "contractId"> & {
         /** The hash of the Wasm blob, which must already be installed on-chain. */

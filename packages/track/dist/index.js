@@ -10,14 +10,13 @@ if (typeof window !== 'undefined') {
 export const networks = {
     testnet: {
         networkPassphrase: "Test SDF Network ; September 2015",
-        contractId: "CB4ACEOEL4753V5SYYO7JM2TIZ6VOQ4TBCD5GYB7WD2TX2T4LPO2KXWU",
+        contractId: "CAYS7M2WWPVTOQYZIL3T2TZ77PJT35EKH5QVGHB3EVG3RQ4BEOW4XLWF",
     }
 };
-export const Errors = {};
 export class Client extends ContractClient {
     options;
     static async deploy(
-    /** Options for initalizing a Client as well as for calling a method, with extras specific to deploying. */
+    /** Options for initializing a Client as well as for calling a method, with extras specific to deploying. */
     options) {
         return ContractClient.deploy(null, options);
     }

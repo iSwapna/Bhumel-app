@@ -134,6 +134,12 @@ function bind({ alias, id }) {
 		`stellar contract bindings typescript --id ${id} --output-dir ${dirname}/packages/${alias} --overwrite`
 	);
 
+	// Update package.json to use the correct SDK version
+	const packageJsonPath = `${dirname}/packages/${alias}/package.json`;
+	const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+	packageJson.dependencies['@stellar/stellar-sdk'] = '13.2.0';
+	writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+
 	exe(`cd packages/${alias} && pnpm install && pnpm run build && cd ../..`);
 }
 

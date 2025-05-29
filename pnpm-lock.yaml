@@ -33,7 +33,7 @@ importers:
         specifier: ^0.4.1
         version: 0.4.1(tailwindcss@4.1.8)
       '@stellar/stellar-sdk':
-        specifier: ^13.2.0
+        specifier: 13.2.0
         version: 13.2.0
       buffer:
         specifier: ^6.0.3
@@ -965,9 +965,6 @@ packages:
     resolution: {integrity: sha512-90EArG+eCCEzDGj3OJNoCtwpWDwxjv+rs/RNPhvg4bulpjN/CSRj+Ys/SalRcfM4/WRC5/qAfjzmJBAuquWhkA==}
     engines: {node: '>=18.0.0'}
 
-  '@stellar/stellar-sdk@13.0.0':
-    resolution: {integrity: sha512-+wvmKi+XWwu27nLYTM17EgBdpbKohEkOfCIK4XKfsI4WpMXAqvnqSm98i9h5dAblNB+w8BJqzGs1JY0PtTGm4A==}
-
   '@stellar/stellar-sdk@13.2.0':
     resolution: {integrity: sha512-azxeh1+mS28h96Q+vl41ffytQvWdudRl1KtjYO0TRZb/9u0/lH57oYBeJ+gvcQr+T7s02wTayFdHbKru5V5/XA==}
     engines: {node: '>=18.0.0'}
@@ -1678,9 +1675,6 @@ packages:
     peerDependenciesMeta:
       picomatch:
         optional: true
-
-  feaxios@0.0.20:
-    resolution: {integrity: sha512-g3hm2YDNffNxA3Re3Hd8ahbpmDee9Fv1Pb1C/NoWsjY7mtD8nyNeJytUzn+DK0Hyl9o6HppeWOrtnqgmhOYfWA==}
 
   feaxios@0.0.23:
     resolution: {integrity: sha512-eghR0A21fvbkcQBgZuMfQhrXxJzC0GNUGC9fXhBge33D+mFDTwl0aJ35zoQQn575BhyjQitRc5N4f+L4cP708g==}
@@ -3736,19 +3730,6 @@ snapshots:
     optionalDependencies:
       sodium-native: 4.3.3
 
-  '@stellar/stellar-sdk@13.0.0':
-    dependencies:
-      '@stellar/stellar-base': 13.1.0
-      axios: 1.9.0
-      bignumber.js: 9.3.0
-      eventsource: 2.0.2
-      feaxios: 0.0.20
-      randombytes: 2.1.0
-      toml: 3.0.0
-      urijs: 1.19.11
-    transitivePeerDependencies:
-      - debug
-
   '@stellar/stellar-sdk@13.2.0':
     dependencies:
       '@stellar/stellar-base': 13.1.0
@@ -4616,10 +4597,6 @@ snapshots:
   fdir@6.4.5(picomatch@4.0.2):
     optionalDependencies:
       picomatch: 4.0.2
-
-  feaxios@0.0.20:
-    dependencies:
-      is-retry-allowed: 3.0.0
 
   feaxios@0.0.23:
     dependencies:
@@ -5682,7 +5659,7 @@ snapshots:
 
   track@file:packages/track:
     dependencies:
-      '@stellar/stellar-sdk': 13.0.0
+      '@stellar/stellar-sdk': 13.2.0
       buffer: 6.0.3
     transitivePeerDependencies:
       - debug

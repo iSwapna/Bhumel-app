@@ -8,6 +8,7 @@
 		"resolveJsonModule": true,
 		"skipLibCheck": true,
 		"sourceMap": true,
+		"inlineSources": true,
 		"strict": true,
 		"moduleResolution": "bundler",
 		"types": ["@types/node", "svelte", "@sveltejs/kit"]

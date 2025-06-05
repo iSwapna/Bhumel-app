@@ -1,11 +1,20 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, symbol_short, Env, String, Address};
+use soroban_sdk::{contract, contractimpl, symbol_short, Env, String, Address, Error};
 
 #[contract]
 pub struct GitCommitTracker;
 
 #[contractimpl]
 impl GitCommitTracker {
+    pub fn __constructor(
+        env: Env,
+        admin: Address,
+    ) -> Result<(), Error> {
+        admin.require_auth();
+        env.storage().persistent().set(&symbol_short!("crumb"), &admin);
+        env.events().publish((symbol_short!("crumb"),), admin);
+        Ok(())
+    }
     pub fn commit(env: &Env, user: Address, sha: String) {
         // Require authentication from the user
         user.require_auth();

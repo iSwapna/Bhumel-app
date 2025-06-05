@@ -7,7 +7,7 @@ export * as rpc from '@stellar/stellar-sdk/rpc';
 export declare const networks: {
     readonly testnet: {
         readonly networkPassphrase: "Test SDF Network ; September 2015";
-        readonly contractId: "CAWLZSUZGM2Z72NZJ4EZG7XDRI24TQLXEKUS6QPLH4Z67AGJOZTYWWL3";
+        readonly contractId: "CDCGN7FWYHXTX4H2C4GTX6CAQAOT3JLBSDN7JPAGF66FYTD6U7R4ZSLG";
     };
 };
 export interface Client {
@@ -52,6 +52,10 @@ export interface Client {
 export declare class Client extends ContractClient {
     readonly options: ContractClientOptions;
     static deploy<T = Client>(
+    /** Constructor/Initialization Args for the contract's `__constructor` method */
+    { admin }: {
+        admin: string;
+    }, 
     /** Options for initializing a Client as well as for calling a method, with extras specific to deploying. */
     options: MethodOptions & Omit<ContractClientOptions, "contractId"> & {
         /** The hash of the Wasm blob, which must already be installed on-chain. */

@@ -34,7 +34,7 @@ if (typeof window !== 'undefined') {
 export const networks = {
   testnet: {
     networkPassphrase: "Test SDF Network ; September 2015",
-    contractId: "CAWLZSUZGM2Z72NZJ4EZG7XDRI24TQLXEKUS6QPLH4Z67AGJOZTYWWL3",
+    contractId: "CDCGN7FWYHXTX4H2C4GTX6CAQAOT3JLBSDN7JPAGF66FYTD6U7R4ZSLG",
   }
 } as const
 
@@ -83,6 +83,8 @@ export interface Client {
 }
 export class Client extends ContractClient {
   static async deploy<T = Client>(
+        /** Constructor/Initialization Args for the contract's `__constructor` method */
+        {admin}: {admin: string},
     /** Options for initializing a Client as well as for calling a method, with extras specific to deploying. */
     options: MethodOptions &
       Omit<ContractClientOptions, "contractId"> & {
@@ -94,11 +96,12 @@ export class Client extends ContractClient {
         format?: "hex" | "base64";
       }
   ): Promise<AssembledTransaction<T>> {
-    return ContractClient.deploy(null, options)
+    return ContractClient.deploy({admin}, options)
   }
   constructor(public readonly options: ContractClientOptions) {
     super(
-      new ContractSpec([ "AAAAAAAAAAAAAAAGY29tbWl0AAAAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAADc2hhAAAAABAAAAAA",
+      new ContractSpec([ "AAAAAAAAAAAAAAANX19jb25zdHJ1Y3RvcgAAAAAAAAEAAAAAAAAABWFkbWluAAAAAAAAEwAAAAEAAAPpAAAD7QAAAAAAAAAD",
+        "AAAAAAAAAAAAAAAGY29tbWl0AAAAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAADc2hhAAAAABAAAAAA",
         "AAAAAAAAAAAAAAAKZ2V0X2NvbW1pdAAAAAAAAAAAAAEAAAPoAAAAEA==" ]),
       options
     )

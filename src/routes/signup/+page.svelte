@@ -28,51 +28,79 @@
 	async function signup() {
 		console.log('[Signup] Starting signup process');
 		try {
+			console.log('[Signup] Initial userName value:', userName);
 			console.log('[Signup] Prompting for username');
-			await new Promise<string>((resolve) => {
+			userName = await new Promise<string>((resolve) => {
 				const modal: ModalSettings = {
 					type: 'prompt',
 					title: 'Enter Name',
 					body: 'Please provide a username below.',
 					valueAttr: { type: 'text', required: true },
-					response: (r: string) => resolve(r)
+					response: (r: string) => {
+						console.log('[Signup] Modal response received:', r);
+						// Trim whitespace and ensure non-empty
+						const trimmedName = r.trim();
+						if (!trimmedName) {
+							toastStore.trigger({
+								message: 'Username cannot be empty',
+								background: 'variant-filled-error'
+							});
+							return;
+						}
+						resolve(trimmedName);
+					}
 				};
 				modalStore.trigger(modal);
-			}).then((r: string) => {
-				userName = r;
-				console.log('[Signup] Username received:', userName);
 			});
+			console.log('[Signup] Username received and set:', userName);
+			console.log('[Signup] Username type:', typeof userName);
+			console.log('[Signup] Username length:', userName.length);
+
+			if (!userName) {
+				throw new Error('Username is required');
+			}
 
 			console.log('[Signup] Creating wallet with name:', userName);
-			const {
-				keyIdBase64,
-				contractId: cid,
-				signedTx
-			} = await account.createWallet('Bhumel', userName);
-			console.log('[Signup] Wallet created successfully');
-			console.log('[Signup] KeyId:', keyIdBase64);
-			console.log('[Signup] ContractId:', cid);
+			try {
+				const {
+					keyIdBase64,
+					contractId: cid,
+					signedTx
+				} = await account.createWallet('Bhumel', userName);
+				console.log('[Signup] Wallet created successfully');
+				console.log('[Signup] KeyId:', keyIdBase64);
+				console.log('[Signup] ContractId:', cid);
 
-			keyId.set(keyIdBase64);
-			contractId.set(cid);
+				keyId.set(keyIdBase64);
+				contractId.set(cid);
 
-			if (!signedTx) {
-				console.error('[Signup] Error: built transaction missing');
-				error(500, {
-					message: 'built transaction missing'
+				if (!signedTx) {
+					console.error('[Signup] Error: built transaction missing');
+					error(500, {
+						message: 'built transaction missing'
+					});
+				}
+				console.log('[Signup] Sending transaction');
+				await send(signedTx);
+				console.log('[Signup] Transaction sent successfully');
+
+				console.log('[Signup] Funding contract');
+				await fundContract($contractId);
+				console.log('[Signup] Contract funded successfully');
+
+				console.log('[Signup] Getting initial balance');
+				await getBalance();
+				console.log('[Signup] Signup process completed successfully');
+			} catch (err) {
+				console.error('[Signup] Error during wallet creation:', err);
+				console.error('[Signup] Error details:', {
+					error: err,
+					errorName: err instanceof Error ? err.name : 'Unknown',
+					errorMessage: err instanceof Error ? err.message : String(err),
+					errorStack: err instanceof Error ? err.stack : undefined
 				});
+				throw err;
 			}
-			console.log('[Signup] Sending transaction');
-			await send(signedTx);
-			console.log('[Signup] Transaction sent successfully');
-
-			console.log('[Signup] Funding contract');
-			await fundContract($contractId);
-			console.log('[Signup] Contract funded successfully');
-
-			console.log('[Signup] Getting initial balance');
-			await getBalance();
-			console.log('[Signup] Signup process completed successfully');
 		} catch (err) {
 			console.error('[Signup] Error during signup:', err);
 			toastStore.trigger({

@@ -1,8 +1,22 @@
 <script>
 	import { page } from '$app/stores';
+	import '../app.postcss';
 
-	// Variables removed to fix linting errors
+	// Floating UI for Popups
+	import { computePosition, autoUpdate, flip, shift, offset, arrow } from '@floating-ui/dom';
+	import { storePopup } from '@skeletonlabs/skeleton';
+	storePopup.set({ computePosition, autoUpdate, flip, shift, offset, arrow });
+
+	import { initializeStores, Toast, Modal } from '@skeletonlabs/skeleton';
+	initializeStores();
+
+	function signup() {
+		window.location.href = '/signup';
+	}
 </script>
+
+<Toast />
+<Modal />
 
 <div class="app">
 	<header>
@@ -27,9 +41,10 @@
 						<form action="/signin?provider=github" method="POST">
 							<button type="submit" class="sign-in-btn">Sign In</button>
 						</form>
-						<form action="/signup" method="GET">
+						<!-- <form action="/signup" method="POST">
 							<button type="submit" class="sign-up-btn">Sign Up</button>
-						</form>
+						</form> -->
+						<button class="sign-up-btn" onclick={signup}>Signup</button>
 					</div>
 				{/if}
 			</div>

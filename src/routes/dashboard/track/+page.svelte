@@ -40,14 +40,16 @@
 	const colors = {
 		primary: '#800020', // Maroon
 		secondary: '#33001a', // Dark maroon text color
-		accent: '#FC6E27', // Orange
+		accent: '#1A0004', // Darkest maroon for Share button
 		background: '#F8F9FC', // Light gray background
 		text: '#33001a', // Dark maroon text
-		lightText: '#33001a', // Dark maroon text
-		success: '#00A389', // Green
-		warning: '#FFB800', // Yellow
-		error: '#FF3B6B', // Red
-		chartColors: ['#800020', '#FC6E27', '#00A389'] // Maroon, Orange, Green for the three skills
+		edit: '#4A1B2E', // Rich burgundy for Edit
+		verify: '#7D1B2E', // Deep wine for Verify
+		record: '#B81B2E', // Bright maroon for Record
+		lightText: '#666666', // Light text color
+		success: '#00A389', // Success green
+		warning: '#FFB800', // Warning yellow
+		error: '#FF3B6B' // Error red
 	};
 
 	// Question and answer functionality

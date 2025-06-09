@@ -103,41 +103,29 @@
 	const teammates = [
 		{
 			id: 1,
-			name: 'Carlos Rivera',
-			title: 'Backend Developer',
-			skills: ['Node.js', 'MongoDB', 'GraphQL'],
-			profileImage: 'https://i.pravatar.cc/150?img=30',
-			sharedProjects: 3
+			name: 'Sarah Chen',
+			role: 'Frontend Developer',
+			avatar: 'https://i.pravatar.cc/150?img=5'
 		},
 		{
 			id: 2,
-			name: 'Emma Wilson',
-			title: 'UX Designer',
-			skills: ['Figma', 'User Research', 'Prototyping'],
-			profileImage: 'https://i.pravatar.cc/150?img=31',
-			sharedProjects: 2
-		},
-		{
-			id: 3,
-			name: 'Raj Patel',
-			title: 'DevOps Engineer',
-			skills: ['Kubernetes', 'CI/CD', 'AWS'],
-			profileImage: 'https://i.pravatar.cc/150?img=32',
-			sharedProjects: 1
+			name: 'Michael Rodriguez',
+			role: 'Backend Developer',
+			avatar: 'https://i.pravatar.cc/150?img=6'
 		}
 	];
 
-	// Define color palette to match the existing app style
+	// Define color palette
 	const colors = {
 		primary: '#800020', // Maroon
 		secondary: '#33001a', // Dark maroon text color
-		accent: '#FC6E27', // Orange
+		accent: '#1A0004', // Darkest maroon for Share button
 		background: '#F8F9FC', // Light gray background
 		text: '#33001a', // Dark maroon text
-		lightText: '#33001a', // Dark maroon text
-		success: '#00A389', // Green
-		warning: '#FFB800', // Yellow
-		error: '#FF3B6B' // Red
+		lightText: '#666666', // Light text color
+		success: '#00A389', // Success green
+		warning: '#FFB800', // Warning yellow
+		error: '#FF3B6B' // Error red
 	};
 
 	// Add goals data
@@ -249,7 +237,7 @@
 						</div>
 					{/each}
 				</div>
-				<a href="/dashboard/skill-progression" class="view-all-link">Manage all goals →</a>
+				<a href="/dashboard/track" class="view-all-link">Manage all goals →</a>
 			</div>
 		</div>
 
@@ -380,21 +368,10 @@
 				<div class="teammates-list">
 					{#each teammates as teammate (teammate.id)}
 						<div class="teammate-item">
-							<img src={teammate.profileImage} alt={teammate.name} class="teammate-image" />
+							<img src={teammate.avatar} alt={teammate.name} class="teammate-image" />
 							<div class="teammate-info">
 								<h4>{teammate.name}</h4>
-								<p class="teammate-title">{teammate.title}</p>
-								<div class="teammate-skills">
-									{#each teammate.skills.slice(0, 2) as skill (skill)}
-										<span class="skill-tag small">{skill}</span>
-									{/each}
-									{#if teammate.skills.length > 2}
-										<span class="more-skills">+{teammate.skills.length - 2}</span>
-									{/if}
-								</div>
-								<div class="shared-projects">
-									{teammate.sharedProjects} shared project{teammate.sharedProjects !== 1 ? 's' : ''}
-								</div>
+								<p class="teammate-title">{teammate.role}</p>
 							</div>
 							<button class="teammate-button">Message</button>
 						</div>
@@ -931,8 +908,7 @@
 		margin: 0.25rem 0;
 	}
 
-	.more-specialties,
-	.more-skills {
+	.more-specialties {
 		font-size: 0.7rem;
 		color: var(--light-text);
 		background-color: #f5f5f5;
@@ -1021,19 +997,6 @@
 		margin: 0.25rem 0;
 		font-size: 0.8rem;
 		color: var(--light-text);
-	}
-
-	.teammate-skills {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.25rem;
-		margin: 0.25rem 0;
-	}
-
-	.shared-projects {
-		font-size: 0.7rem;
-		color: var(--light-text);
-		margin-top: 0.25rem;
 	}
 
 	.teammate-button {

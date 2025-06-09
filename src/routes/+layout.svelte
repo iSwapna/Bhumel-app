@@ -24,7 +24,7 @@
 			<div class="nav-tabs">
 				<a href="/" class="nav-tab">Home</a>
 				<a href="/discover" class="nav-tab">Discover</a>
-				<a href="/dashboard/skill-progression" class="nav-tab">Track</a>
+				<a href="/dashboard/track" class="nav-tab">Track</a>
 				<a href="/share" class="nav-tab">Share</a>
 			</div>
 

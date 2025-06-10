@@ -108,7 +108,15 @@ export class RustWasmSummaryService {
 		const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
 		// Format the summaries for the prompt
-		const prompt = `Analyze the following code summaries and provide an overall assessment of the codebase:${context}\n\n${JSON.stringify(bucketSummaries, null, 2)}`;
+		const prompt = `Based on these code summaries, provide a concise 3-5 line overview of the project. Focus on:
+1. Main technologies used
+2. Core functionality
+3. Key architectural components
+4. Notable features
+
+Keep it brief and technical. Format as a resume summary
+
+Code summaries:${context}\n\n${JSON.stringify(bucketSummaries, null, 2)}`;
 
 		console.log('Sending to Gemini:', prompt);
 
@@ -116,7 +124,8 @@ export class RustWasmSummaryService {
 			const result = await model.generateContent(prompt);
 			const response = await result.response;
 			const text = response.text();
-			return text;
+			// Ensure we only get the first 7 lines
+			return text.split('\n').slice(0, 7).join('\n');
 		} catch (error) {
 			console.error('Error generating overall summary:', error);
 			throw error;

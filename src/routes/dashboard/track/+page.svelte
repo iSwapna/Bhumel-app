@@ -10,7 +10,7 @@
 		batchProgressStore,
 		repositoryStore,
 		type ProgressionData
-	} from '$lib/stores/dashboardStore';
+	} from '$lib/stores/trackStore';
 
 	// State from stores
 	let loading = $loadingStore;

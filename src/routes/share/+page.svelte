@@ -1,112 +1,160 @@
 <script lang="ts">
-	let context = '';
-	let selectedRepo = '';
-	let summary = '';
-	let confidenceScore = 0;
-	let isEditing = false;
-	let editedSummary = '';
-	let isProcessing = false;
+	import { shareDataStore, loadingStore, errorStore } from '$lib/stores/shareStore';
+	import { onMount } from 'svelte';
 
-	// Mock repositories - replace with actual data
-	const repositories = [
-		{ id: 'algol', name: 'Algorithms' },
-		{ id: 'ds', name: 'Data Structures' },
-		{ id: 'web', name: 'Web Development' }
-	];
-
-	function handleSummarize() {
-		isProcessing = true;
-		// TODO: Implement actual summarization logic
-		setTimeout(() => {
-			summary = `Based on the provided context: "${context}", the user has demonstrated strong skills in:
-1. Problem Solving
-2. Code Organization
-3. Algorithm Implementation
-
-The work shows consistent progress in understanding core concepts and applying them effectively.`;
-			editedSummary = summary;
-			isProcessing = false;
-		}, 1000);
+	interface Skill {
+		name: string;
+		evidence: string[];
 	}
 
-	function handleVerify() {
-		isProcessing = true;
-		// TODO: Implement actual verification logic
-		setTimeout(() => {
-			confidenceScore = 85; // Mock score
-			isProcessing = false;
-		}, 1000);
+	interface ShareData {
+		context: string;
+		selectedRepo: string;
+		summary: string;
+		confidenceScore: number;
+		isEditing: boolean;
+		editedSummary: string;
+		skills: Skill[];
+	}
+
+	const defaultShareData: ShareData = {
+		context: '',
+		selectedRepo: 'algol',
+		summary: '',
+		confidenceScore: 0,
+		isEditing: false,
+		editedSummary: '',
+		skills: []
+	};
+
+	// Initialize share data if not exists
+	onMount(() => {
+		if (!$shareDataStore) {
+			$shareDataStore = defaultShareData;
+		}
+	});
+
+	// Get store values
+	let shareData: ShareData = $shareDataStore || defaultShareData;
+	let loading = $loadingStore;
+	let error = $errorStore;
+	let installationId = '66241334'; // GitHub installation ID
+
+	// Update store values when local variables change
+	$: $shareDataStore = shareData;
+	$: $loadingStore = loading;
+	$: $errorStore = error;
+
+	async function handleSummarize() {
+		if (!shareData) return;
+
+		loading = true;
+		error = null;
+
+		try {
+			const response = await fetch(
+				`/api/rust-wasm-summary?installation_id=${installationId}&repository=${encodeURIComponent(
+					shareData.selectedRepo
+				)}&context=${encodeURIComponent(shareData.context)}`
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.message || 'Failed to generate summary');
+			}
+
+			const data = await response.json();
+			shareData.summary = data.summary.summary;
+			shareData.editedSummary = shareData.summary;
+			shareData.skills = data.summary.skills || [];
+		} catch (err) {
+			console.error('Error generating summary:', err);
+			error = err instanceof Error ? err.message : 'Failed to generate summary';
+		} finally {
+			loading = false;
+		}
 	}
 </script>
 
 <div class="share-page">
-	<div class="share-header">
-		<h1>Share Your Progress</h1>
-		<p>Generate a comprehensive summary of your contributions and skills</p>
-	</div>
-
-	<!-- Repository Selection -->
-	<div class="repository-selector">
-		<select bind:value={selectedRepo} class="select-field">
-			<option value="">Select a repository</option>
-			{#each repositories as repo (repo.id)}
-				<option value={repo.id}>{repo.name}</option>
-			{/each}
-		</select>
-	</div>
-
-	<div class="share-content">
-		<!-- Context Section -->
-		<div class="card">
-			<h2>Context</h2>
-			<textarea
-				bind:value={context}
-				class="input-field"
-				rows="4"
-				placeholder="Enter context for the LLM..."
-			></textarea>
-			<button class="button primary" on:click={handleSummarize} disabled={isProcessing}>
-				{#if isProcessing}
-					Processing...
-				{:else}
-					Summarize
-				{/if}
-			</button>
+	{#if !shareData}
+		<div class="loading">Loading...</div>
+	{:else}
+		<div class="share-header">
+			<h1>Share Your Progress</h1>
+			<p>Generate a comprehensive summary of your contributions and skills</p>
 		</div>
 
-		<!-- Summary Section -->
-		<div class="card">
-			<h2>Summary</h2>
-			<textarea
-				class="input-field"
-				rows="6"
-				placeholder="Click the Summarize button to generate a summary..."
-				readonly={!isEditing}
-				bind:value={editedSummary}
-			></textarea>
-			<div class="button-group">
-				<button class="button secondary" on:click={() => (isEditing = !isEditing)}>
-					{isEditing ? 'Done Editing' : 'Edit'}
-				</button>
-				<button class="button accent" on:click={handleVerify} disabled={isProcessing}>
-					{#if isProcessing}
-						Verifying...
+		<div class="repository-highlight">
+			<h2>Repository</h2>
+			<div class="repo-selector">
+				<select bind:value={shareData.selectedRepo}>
+					<option value="algol">Algol</option>
+					<option value="bhumel-app">Bhumel-app</option>
+					<option value="hume">Hume</option>
+				</select>
+			</div>
+		</div>
+
+		<div class="share-content">
+			<!-- Context Section -->
+			<div class="card">
+				<h2>Context</h2>
+				<textarea
+					bind:value={shareData.context}
+					class="input-field"
+					rows="4"
+					placeholder="Enter context for the LLM..."
+				></textarea>
+				<button class="button primary" on:click={handleSummarize} disabled={loading}>
+					{#if loading}
+						Processing...
 					{:else}
-						Verify
+						Summarize
 					{/if}
 				</button>
-				<button class="button success" on:click={() => console.log('Record clicked')}>
-					Record
-				</button>
-				<button class="button accent" on:click={() => console.log('Share clicked')}> Share </button>
 			</div>
-			{#if confidenceScore > 0}
-				<div class="confidence-score">
-					Confidence Score: <span class="score">{confidenceScore}%</span>
+
+			<!-- Summary Section -->
+			<div class="card">
+				<h2>Summary</h2>
+				<textarea
+					class="input-field"
+					rows="6"
+					placeholder="Click the Summarize button to generate a summary..."
+					readonly
+					bind:value={shareData.editedSummary}
+				></textarea>
+				{#if shareData.skills && shareData.skills.length > 0}
+					<div class="skills-section">
+						<h3>Skills Demonstrated</h3>
+						<div class="skills-list">
+							{#each shareData.skills as skill, index (index)}
+								<div class="skill-item">
+									<h4>{skill.name}</h4>
+									{#if skill.evidence && skill.evidence.length > 0}
+										<ul class="evidence-list">
+											{#each skill.evidence as evidence (evidence)}
+												<li>{evidence}</li>
+											{/each}
+										</ul>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+				<div class="button-group">
+					<button class="button success" on:click={() => console.log('Record clicked')}>
+						Record
+					</button>
+					<button class="button accent" on:click={() => console.log('Share clicked')}>
+						Share
+					</button>
 				</div>
-			{/if}
+			</div>
 		</div>
-	</div>
+	{/if}
 </div>
 
 <style>
@@ -135,33 +183,47 @@ The work shows consistent progress in understanding core concepts and applying t
 		opacity: 0.8;
 	}
 
-	.repository-selector {
-		display: flex;
-		justify-content: center;
+	.repository-highlight {
+		background-color: white;
+		border-radius: 12px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+		padding: 1rem 1.5rem;
 		margin-bottom: 2rem;
+		text-align: center;
 	}
 
-	.repository-selector .select-field {
-		width: 300px;
-		padding: 0.75rem 3rem 0.75rem 1rem;
-		border: 2px solid #e2e8f0;
-		border-radius: 8px;
-		font-size: 1.1rem;
-		color: var(--text, #33001a);
+	.repository-highlight h2 {
+		margin-bottom: 0.75rem;
+	}
+
+	.repo-selector {
+		max-width: 300px;
+		margin: 0 auto;
+	}
+
+	.repo-selector select {
+		width: 100%;
+		padding: 0.75rem;
+		border-radius: 6px;
+		border: 1px solid #ddd;
 		background-color: white;
-		text-align: left;
-		appearance: none;
+		font-size: 1rem;
+		font-weight: 500;
+		color: var(--primary);
+		cursor: pointer;
 		-webkit-appearance: none;
 		-moz-appearance: none;
-		background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2333001a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+		appearance: none;
+		background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24'%3e%3cpath fill='none' d='M0 0h24v24H0z'/%3e%3cpath d='M12 15l-4.243-4.243 1.415-1.414L12 12.172l2.828-2.829 1.415 1.414z' fill='%23800020'/%3e%3c/svg%3e");
 		background-repeat: no-repeat;
-		background-position: right 1rem center;
-		background-size: 1em;
+		background-position: right 10px center;
+		background-size: 20px;
 	}
 
-	.repository-selector .select-field:focus {
+	.repo-selector select:focus {
 		outline: none;
-		border-color: var(--primary, #800020);
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px rgba(128, 0, 32, 0.2);
 	}
 
 	.share-content {
@@ -224,15 +286,6 @@ The work shows consistent progress in understanding core concepts and applying t
 		background-color: #600018;
 	}
 
-	.button.secondary {
-		background-color: var(--edit, #4a1b2e);
-		color: white;
-	}
-
-	.button.secondary:hover:not(:disabled) {
-		background-color: #3a1524;
-	}
-
 	.button.accent {
 		background-color: var(--accent, #1a0004);
 		color: white;
@@ -258,16 +311,52 @@ The work shows consistent progress in understanding core concepts and applying t
 		flex-wrap: wrap;
 	}
 
-	.confidence-score {
-		margin-top: 1rem;
-		text-align: center;
+	.skills-section {
+		margin-top: 1.5rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid #e2e8f0;
+	}
+
+	.skills-section h3 {
+		color: var(--secondary, #33001a);
+		font-size: 1.25rem;
+		margin-bottom: 1rem;
+	}
+
+	.skills-list {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+		gap: 1rem;
+	}
+
+	.skill-item {
+		background: #f8f9fc;
+		padding: 1rem;
+		border-radius: 8px;
+		border: 1px solid #e2e8f0;
+	}
+
+	.skill-item h4 {
+		color: var(--primary, #800020);
 		font-size: 1.1rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.evidence-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		font-size: 0.9rem;
 		color: var(--text, #33001a);
 	}
 
-	.confidence-score .score {
-		font-weight: bold;
-		color: var(--verify, #7d1b2e);
+	.evidence-list li {
+		padding: 0.25rem 0;
+		border-bottom: 1px solid #e2e8f0;
+	}
+
+	.evidence-list li:last-child {
+		border-bottom: none;
 	}
 
 	@media (max-width: 768px) {

@@ -2,6 +2,25 @@ import type { RequestHandler } from './$types';
 import { GitHubService } from '$lib/services/github';
 import { MCPService } from '$lib/services/mcp';
 
+interface CommitFile {
+	filename: string;
+	status: string;
+	additions: number;
+	deletions: number;
+	patch?: string;
+}
+
+interface Commit {
+	sha: string;
+	commit: {
+		message: string;
+		author?: {
+			date?: string;
+		};
+	};
+	files?: CommitFile[];
+}
+
 const githubService = new GitHubService();
 const mcpService = new MCPService();
 
@@ -84,7 +103,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		console.log(`Processing ${limitedCommits.length} commits (out of ${commits.length} total)`);
 
 		// Prepare data for all commits first
-		const commitDataPromises = limitedCommits.map(async (commit) => {
+		const commitDataPromises = limitedCommits.map(async (commit: Commit) => {
 			try {
 				// Get detailed commit info including files
 				const commitDetails = await githubService.getCommitDetails(
@@ -93,7 +112,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				);
 
 				// Prepare files for analysis
-				const files = (commitDetails.files || []).map((file) => ({
+				const files = (commitDetails.files || []).map((file: CommitFile) => ({
 					path: file.filename,
 					changes: file.patch || ''
 				}));

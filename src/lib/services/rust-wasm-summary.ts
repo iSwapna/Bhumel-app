@@ -89,7 +89,7 @@ export class RustWasmSummaryService {
 				}
 			}
 
-			const prompt = `Analyze these ${bucket} files and provide a brief summary of their purpose and functionality in exactly 5 lines or less:\n\n${fileContent}`;
+			const prompt = `Analyze these ${bucket} files and provide a 2 line summary of their purpose and functionality in exactly 5 lines or less:\n\n${fileContent}`;
 
 			const result = await model.generateContent(prompt);
 			const response = await result.response;

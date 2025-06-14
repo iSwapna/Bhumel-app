@@ -10,7 +10,7 @@ if (typeof window !== 'undefined') {
 export const networks = {
     testnet: {
         networkPassphrase: "Test SDF Network ; September 2015",
-        contractId: "CDCGN7FWYHXTX4H2C4GTX6CAQAOT3JLBSDN7JPAGF66FYTD6U7R4ZSLG",
+        contractId: "CCETJECMKOQSSLABSYRI66XSTZNNIGF3Q4N4NB37IYIYRADT62V442XH",
     }
 };
 export class Client extends ContractClient {
@@ -24,12 +24,12 @@ export class Client extends ContractClient {
     }
     constructor(options) {
         super(new ContractSpec(["AAAAAAAAAAAAAAANX19jb25zdHJ1Y3RvcgAAAAAAAAEAAAAAAAAABWFkbWluAAAAAAAAEwAAAAEAAAPpAAAD7QAAAAAAAAAD",
-            "AAAAAAAAAAAAAAAGY29tbWl0AAAAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAADc2hhAAAAABAAAAAA",
-            "AAAAAAAAAAAAAAAKZ2V0X2NvbW1pdAAAAAAAAAAAAAEAAAPoAAAAEA=="]), options);
+            "AAAAAAAAAAAAAAAHY2VydGlmeQAAAAADAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAEaGFzaAAAABAAAAAAAAAACXRpbWVzdGFtcAAAAAAAAAYAAAABAAAD6QAAA+0AAAAAAAAAAw==",
+            "AAAAAAAAAAAAAAAGdmVyaWZ5AAAAAAABAAAAAAAAAARoYXNoAAAAEAAAAAEAAAPoAAAABg=="]), options);
         this.options = options;
     }
     fromJSON = {
-        commit: (this.txFromJSON),
-        get_commit: (this.txFromJSON)
+        certify: (this.txFromJSON),
+        verify: (this.txFromJSON)
     };
 }

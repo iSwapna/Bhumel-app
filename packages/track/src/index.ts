@@ -34,16 +34,16 @@ if (typeof window !== 'undefined') {
 export const networks = {
   testnet: {
     networkPassphrase: "Test SDF Network ; September 2015",
-    contractId: "CDCGN7FWYHXTX4H2C4GTX6CAQAOT3JLBSDN7JPAGF66FYTD6U7R4ZSLG",
+    contractId: "CCETJECMKOQSSLABSYRI66XSTZNNIGF3Q4N4NB37IYIYRADT62V442XH",
   }
 } as const
 
 
 export interface Client {
   /**
-   * Construct and simulate a commit transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   * Construct and simulate a certify transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
-  commit: ({user, sha}: {user: string, sha: string}, options?: {
+  certify: ({user, hash, timestamp}: {user: string, hash: string, timestamp: u64}, options?: {
     /**
      * The fee to pay for the transaction. Default: BASE_FEE
      */
@@ -58,12 +58,12 @@ export interface Client {
      * Whether to automatically simulate the transaction when constructing the AssembledTransaction. Default: true
      */
     simulate?: boolean;
-  }) => Promise<AssembledTransaction<null>>
+  }) => Promise<AssembledTransaction<Result<void>>>
 
   /**
-   * Construct and simulate a get_commit transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   * Construct and simulate a verify transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
-  get_commit: (options?: {
+  verify: ({hash}: {hash: string}, options?: {
     /**
      * The fee to pay for the transaction. Default: BASE_FEE
      */
@@ -78,7 +78,7 @@ export interface Client {
      * Whether to automatically simulate the transaction when constructing the AssembledTransaction. Default: true
      */
     simulate?: boolean;
-  }) => Promise<AssembledTransaction<Option<string>>>
+  }) => Promise<AssembledTransaction<Option<u64>>>
 
 }
 export class Client extends ContractClient {
@@ -101,13 +101,13 @@ export class Client extends ContractClient {
   constructor(public readonly options: ContractClientOptions) {
     super(
       new ContractSpec([ "AAAAAAAAAAAAAAANX19jb25zdHJ1Y3RvcgAAAAAAAAEAAAAAAAAABWFkbWluAAAAAAAAEwAAAAEAAAPpAAAD7QAAAAAAAAAD",
-        "AAAAAAAAAAAAAAAGY29tbWl0AAAAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAADc2hhAAAAABAAAAAA",
-        "AAAAAAAAAAAAAAAKZ2V0X2NvbW1pdAAAAAAAAAAAAAEAAAPoAAAAEA==" ]),
+        "AAAAAAAAAAAAAAAHY2VydGlmeQAAAAADAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAEaGFzaAAAABAAAAAAAAAACXRpbWVzdGFtcAAAAAAAAAYAAAABAAAD6QAAA+0AAAAAAAAAAw==",
+        "AAAAAAAAAAAAAAAGdmVyaWZ5AAAAAAABAAAAAAAAAARoYXNoAAAAEAAAAAEAAAPoAAAABg==" ]),
       options
     )
   }
   public readonly fromJSON = {
-    commit: this.txFromJSON<null>,
-        get_commit: this.txFromJSON<Option<string>>
+    certify: this.txFromJSON<Result<void>>,
+        verify: this.txFromJSON<Option<u64>>
   }
 }

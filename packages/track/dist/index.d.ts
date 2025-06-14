@@ -1,22 +1,23 @@
 import { Buffer } from "buffer";
-import { AssembledTransaction, Client as ContractClient, ClientOptions as ContractClientOptions, MethodOptions } from '@stellar/stellar-sdk/contract';
-import type { Option } from '@stellar/stellar-sdk/contract';
+import { AssembledTransaction, Client as ContractClient, ClientOptions as ContractClientOptions, MethodOptions, Result } from '@stellar/stellar-sdk/contract';
+import type { u64, Option } from '@stellar/stellar-sdk/contract';
 export * from '@stellar/stellar-sdk';
 export * as contract from '@stellar/stellar-sdk/contract';
 export * as rpc from '@stellar/stellar-sdk/rpc';
 export declare const networks: {
     readonly testnet: {
         readonly networkPassphrase: "Test SDF Network ; September 2015";
-        readonly contractId: "CDCGN7FWYHXTX4H2C4GTX6CAQAOT3JLBSDN7JPAGF66FYTD6U7R4ZSLG";
+        readonly contractId: "CCETJECMKOQSSLABSYRI66XSTZNNIGF3Q4N4NB37IYIYRADT62V442XH";
     };
 };
 export interface Client {
     /**
-     * Construct and simulate a commit transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+     * Construct and simulate a certify transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
      */
-    commit: ({ user, sha }: {
+    certify: ({ user, hash, timestamp }: {
         user: string;
-        sha: string;
+        hash: string;
+        timestamp: u64;
     }, options?: {
         /**
          * The fee to pay for the transaction. Default: BASE_FEE
@@ -30,11 +31,13 @@ export interface Client {
          * Whether to automatically simulate the transaction when constructing the AssembledTransaction. Default: true
          */
         simulate?: boolean;
-    }) => Promise<AssembledTransaction<null>>;
+    }) => Promise<AssembledTransaction<Result<void>>>;
     /**
-     * Construct and simulate a get_commit transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+     * Construct and simulate a verify transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
      */
-    get_commit: (options?: {
+    verify: ({ hash }: {
+        hash: string;
+    }, options?: {
         /**
          * The fee to pay for the transaction. Default: BASE_FEE
          */
@@ -47,7 +50,7 @@ export interface Client {
          * Whether to automatically simulate the transaction when constructing the AssembledTransaction. Default: true
          */
         simulate?: boolean;
-    }) => Promise<AssembledTransaction<Option<string>>>;
+    }) => Promise<AssembledTransaction<Option<u64>>>;
 }
 export declare class Client extends ContractClient {
     readonly options: ContractClientOptions;
@@ -67,7 +70,7 @@ export declare class Client extends ContractClient {
     }): Promise<AssembledTransaction<T>>;
     constructor(options: ContractClientOptions);
     readonly fromJSON: {
-        commit: (json: string) => AssembledTransaction<null>;
-        get_commit: (json: string) => AssembledTransaction<Option<string>>;
+        certify: (json: string) => AssembledTransaction<Result<void, import("@stellar/stellar-sdk/contract").ErrorMessage>>;
+        verify: (json: string) => AssembledTransaction<Option<bigint>>;
     };
 }

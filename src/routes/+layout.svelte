@@ -57,8 +57,7 @@
 </div>
 
 <style>
-	/* Import strong, bold fonts */
-	@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;500;600;700;900&family=Roboto:wght@400;500;700;900&display=swap');
+	/* Remove Google Fonts import since we're using Fontsource */
 
 	:global(body) {
 		font-family: 'Roboto', sans-serif;

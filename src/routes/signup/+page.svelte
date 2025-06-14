@@ -8,6 +8,7 @@
 	import { keyId } from '$lib/stores/keyId';
 	import { contractId } from '$lib/stores/contractId';
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 
 	let userName: string = '';
 
@@ -68,10 +69,18 @@
 					signedTx
 				} = await account.createWallet('Bhumel', userName);
 				console.log('[Signup] Wallet created successfully');
-				console.log('[Signup] KeyId:', keyIdBase64);
+				console.log('[Signup] KeyId (raw):', keyIdBase64);
+				console.log('[Signup] KeyId type:', typeof keyIdBase64);
+				console.log('[Signup] KeyId length:', keyIdBase64.length);
+				console.log('[Signup] KeyId first 10 chars:', keyIdBase64.substring(0, 10));
+				console.log(
+					'[Signup] KeyId last 10 chars:',
+					keyIdBase64.substring(keyIdBase64.length - 10)
+				);
 				console.log('[Signup] ContractId:', cid);
 
 				keyId.set(keyIdBase64);
+				console.log('[Signup] KeyId after setting store:', get(keyId));
 				contractId.set(cid);
 
 				if (!signedTx) {

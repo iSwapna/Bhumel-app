@@ -1,6 +1,20 @@
 <script lang="ts">
-	import { shareDataStore, loadingStore, errorStore } from '$lib/stores/shareStore';
+	import { shareDataStore, errorStore } from '$lib/stores/shareStore';
 	import { onMount } from 'svelte';
+	import { certify, generateLink } from '$lib/services/certify';
+	import { page } from '$app/stores';
+	import { getToastStore } from '@skeletonlabs/skeleton';
+
+	const toastStore = getToastStore();
+
+	// Debug session data
+	$: {
+		console.log('Session data:', {
+			session: $page.data.session,
+			user: $page.data.session?.user,
+			userId: $page.data.session?.user?.id
+		});
+	}
 
 	interface Skill {
 		name: string;
@@ -15,9 +29,30 @@
 		isEditing: boolean;
 		editedSummary: string;
 		skills: Skill[];
+		certificationResult?: {
+			userId: string;
+			hash: string;
+			timestamp: number;
+		};
 	}
 
-	const defaultShareData: ShareData = {
+	// Initialize share data if not exists
+	onMount(() => {
+		if (!$shareDataStore) {
+			$shareDataStore = {
+				context: '',
+				selectedRepo: 'algol',
+				summary: '',
+				confidenceScore: 0,
+				isEditing: false,
+				editedSummary: '',
+				skills: []
+			};
+		}
+	});
+
+	// Get store values
+	let shareData: ShareData = $shareDataStore || {
 		context: '',
 		selectedRepo: 'algol',
 		summary: '',
@@ -26,29 +61,30 @@
 		editedSummary: '',
 		skills: []
 	};
-
-	// Initialize share data if not exists
-	onMount(() => {
-		if (!$shareDataStore) {
-			$shareDataStore = defaultShareData;
-		}
-	});
-
-	// Get store values
-	let shareData: ShareData = $shareDataStore || defaultShareData;
-	let loading = $loadingStore;
+	let summarizeLoading = false;
+	let recordLoading = false;
+	let shareLoading = false;
 	let error = $errorStore;
 	let installationId = '66241334'; // GitHub installation ID
+	let shareSuccess = false;
 
 	// Update store values when local variables change
-	$: $shareDataStore = shareData;
-	$: $loadingStore = loading;
+	$: {
+		console.log('shareData updated:', {
+			hasSummary: !!shareData.summary,
+			hasEditedSummary: !!shareData.editedSummary,
+			hasCertificationResult: !!shareData.certificationResult,
+			recordLoading,
+			buttonDisabled: recordLoading || !!shareData.certificationResult
+		});
+		$shareDataStore = shareData;
+	}
 	$: $errorStore = error;
 
 	async function handleSummarize() {
 		if (!shareData) return;
 
-		loading = true;
+		summarizeLoading = true;
 		error = null;
 
 		try {
@@ -67,11 +103,85 @@
 			shareData.summary = data.summary.summary;
 			shareData.editedSummary = shareData.summary;
 			shareData.skills = data.summary.skills || [];
+			// Reset certification result when new summary is generated
+			shareData.certificationResult = undefined;
 		} catch (err) {
 			console.error('Error generating summary:', err);
 			error = err instanceof Error ? err.message : 'Failed to generate summary';
 		} finally {
-			loading = false;
+			summarizeLoading = false;
+		}
+	}
+
+	async function handleRecord() {
+		console.log('handleRecord called');
+		console.log('Current shareData:', {
+			summary: shareData.summary,
+			editedSummary: shareData.editedSummary,
+			certificationResult: shareData.certificationResult
+		});
+		if (!shareData?.editedSummary) {
+			console.log('No edited summary');
+			error = 'Please generate a summary first';
+			return;
+		}
+
+		if (!$page.data.session?.user?.email) {
+			console.log('No user session:', $page.data.session);
+			error = 'Please sign in to record your summary';
+			return;
+		}
+
+		console.log('Starting record process');
+		recordLoading = true;
+		error = null;
+
+		try {
+			console.log('Calling certify with:', {
+				summary: shareData.editedSummary,
+				userId: $page.data.session.user.email
+			});
+			const result = await certify(
+				shareData.editedSummary,
+				$page.data.session.user.email,
+				toastStore
+			);
+			console.log('Certification result:', result);
+			// Store the result for sharing
+			shareData = { ...shareData, certificationResult: result };
+		} catch (err) {
+			console.error('Error recording summary:', err);
+			error = err instanceof Error ? err.message : 'Failed to record summary';
+		} finally {
+			recordLoading = false;
+		}
+	}
+
+	async function handleShare() {
+		if (!shareData.certificationResult) {
+			error = 'Please record the summary first';
+			return;
+		}
+
+		shareLoading = true;
+		error = null;
+
+		try {
+			const link = generateLink(
+				shareData.certificationResult.userId,
+				shareData.certificationResult.hash
+			);
+			const fullUrl = window.location.origin + link;
+			await navigator.clipboard.writeText(fullUrl);
+			shareSuccess = true;
+			setTimeout(() => {
+				shareSuccess = false;
+			}, 3000);
+		} catch (err) {
+			console.error('Error sharing:', err);
+			error = err instanceof Error ? err.message : 'Failed to share';
+		} finally {
+			shareLoading = false;
 		}
 	}
 </script>
@@ -106,8 +216,8 @@
 					rows="4"
 					placeholder="Enter context for the LLM..."
 				></textarea>
-				<button class="button primary" on:click={handleSummarize} disabled={loading}>
-					{#if loading}
+				<button class="button primary" on:click={handleSummarize} disabled={summarizeLoading}>
+					{#if summarizeLoading}
 						Processing...
 					{:else}
 						Summarize
@@ -145,13 +255,61 @@
 					</div>
 				{/if}
 				<div class="button-group">
-					<button class="button success" on:click={() => console.log('Record clicked')}>
-						Record
+					<button
+						class="button success"
+						on:click={() => {
+							console.log('Button clicked - starting handleRecord');
+							console.log('Current state:', {
+								shareData,
+								hasSummary: !!shareData.summary,
+								hasEditedSummary: !!shareData.editedSummary,
+								hasCertificationResult: !!shareData.certificationResult,
+								userId: $page.data.session?.user?.email
+							});
+							handleRecord();
+						}}
+						type="button"
+					>
+						{#if recordLoading}
+							Recording...
+						{:else if shareData.certificationResult}
+							Recorded
+						{:else}
+							Record
+						{/if}
 					</button>
-					<button class="button accent" on:click={() => console.log('Share clicked')}>
-						Share
+					<button
+						class="button accent"
+						on:click={handleShare}
+						disabled={shareLoading || !shareData.certificationResult}
+					>
+						{#if shareLoading}
+							Sharing...
+						{:else if shareSuccess}
+							Copied!
+						{:else}
+							Share
+						{/if}
 					</button>
 				</div>
+
+				{#if shareSuccess}
+					<div class="success-message">Verification link copied to clipboard!</div>
+				{/if}
+
+				{#if shareData.certificationResult}
+					<div class="certification-info">
+						<h3>Certification Details</h3>
+						<p><strong>User ID:</strong> {shareData.certificationResult.userId}</p>
+						<p>
+							<strong>Timestamp:</strong>
+							{new Date(shareData.certificationResult.timestamp).toLocaleString()}
+						</p>
+						<p>
+							<strong>Hash:</strong> <span class="hash">{shareData.certificationResult.hash}</span>
+						</p>
+					</div>
+				{/if}
 			</div>
 		</div>
 	{/if}
@@ -270,11 +428,15 @@
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.2s ease;
+		position: relative;
+		z-index: 1;
+		pointer-events: auto;
 	}
 
 	.button:disabled {
 		opacity: 0.7;
 		cursor: not-allowed;
+		pointer-events: none;
 	}
 
 	.button.primary {
@@ -298,6 +460,7 @@
 	.button.success {
 		background-color: var(--record, #b81b2e);
 		color: white;
+		pointer-events: auto;
 	}
 
 	.button.success:hover:not(:disabled) {
@@ -309,6 +472,9 @@
 		gap: 1rem;
 		margin-top: 1rem;
 		flex-wrap: wrap;
+		position: relative;
+		z-index: 0;
+		pointer-events: auto;
 	}
 
 	.skills-section {
@@ -371,5 +537,42 @@
 		.button {
 			width: 100%;
 		}
+	}
+
+	.certification-info {
+		margin-top: 1.5rem;
+		padding: 1rem;
+		background-color: #f8f9fa;
+		border-radius: 8px;
+		border: 1px solid #e9ecef;
+	}
+
+	.certification-info h3 {
+		margin: 0 0 0.75rem 0;
+		color: var(--secondary, #33001a);
+		font-size: 1.2rem;
+	}
+
+	.certification-info p {
+		margin: 0.5rem 0;
+		color: #495057;
+	}
+
+	.certification-info .hash {
+		font-family: monospace;
+		word-break: break-all;
+		font-size: 0.9rem;
+		background-color: #e9ecef;
+		padding: 0.25rem 0.5rem;
+		border-radius: 4px;
+	}
+
+	.success-message {
+		margin-top: 1rem;
+		padding: 0.75rem;
+		background-color: #d4edda;
+		color: #155724;
+		border-radius: 4px;
+		text-align: center;
 	}
 </style>

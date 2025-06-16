@@ -34,10 +34,6 @@
 
 	async function handleInstall() {
 		try {
-			const response = await fetch('/api/github/install-url');
-			if (!response.ok) throw new Error('Failed to get installation URL');
-			const { url } = await response.json();
-
 			// Generate a unique state for this installation
 			let state = '';
 			if (browser) {
@@ -46,12 +42,12 @@
 				state = Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
 			}
 
+			const response = await fetch(`/api/github/install-url?state=${state}`);
+			if (!response.ok) throw new Error('Failed to get installation URL');
+			const { installationUrl } = await response.json();
+
 			// Open the installation popup
-			const popup = window.open(
-				`${url}&state=${state}`,
-				'github-app-installation',
-				'width=800,height=600'
-			);
+			const popup = window.open(installationUrl, 'github-app-installation', 'width=800,height=600');
 
 			if (!popup) {
 				throw new Error('Popup blocked. Please allow popups for this site.');

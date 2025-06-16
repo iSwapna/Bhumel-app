@@ -24,6 +24,8 @@
 	import { contractId } from '$lib/stores/contractId';
 	import { get } from 'svelte/store';
 
+	import GitHubAppInstall from '$lib/components/GitHubAppInstall.svelte';
+
 	let userName = '';
 	let isLoggedIn = false;
 	let isSigningUp = false;
@@ -322,14 +324,25 @@
 				{#if isLoggedIn}
 					<div class="user-info">
 						<span class="user-name">{$page.data.session?.user?.name || 'User'}</span>
+						<GitHubAppInstall />
 						<button class="sign-out-btn" onclick={logout}>Logout</button>
 					</div>
 				{:else}
 					<div class="auth-buttons">
-						<button class="sign-in-btn" onclick={login} disabled={isLoggingIn || isSigningUp}
-							>Login</button
-						>
-						<button class="sign-up-btn" onclick={signup} disabled={isSigningUp}>Signup</button>
+						<button class="sign-in-btn" onclick={login} disabled={isLoggingIn}>
+							{#if isLoggingIn}
+								Logging in...
+							{:else}
+								Sign In
+							{/if}
+						</button>
+						<button class="sign-up-btn" onclick={signup} disabled={isSigningUp}>
+							{#if isSigningUp}
+								Signing up...
+							{:else}
+								Sign Up
+							{/if}
+						</button>
 					</div>
 				{/if}
 			</div>

@@ -92,10 +92,26 @@ export const GET: RequestHandler = async ({ url }) => {
 
 		console.log(`[${repository}] Found ${commits.length} commits`);
 
+		// Process the commits to get progression data
+		const progressionData = await mcpService.analyzeCommitProgressionBatch(
+			commits.map((commit) => ({
+				sha: commit.sha,
+				date: commit.commit.author?.date || new Date().toISOString(),
+				message: commit.commit.message,
+				files:
+					commit.files?.map((file) => ({
+						path: file.filename,
+						changes: file.patch || ''
+					})) || []
+			})),
+			0, // First batch
+			1 // Total batches
+		);
+
 		return new Response(
 			JSON.stringify(
 				{
-					commits,
+					progressionAnalysis: progressionData,
 					model: 'gemini-2.0-flash'
 				},
 				null,

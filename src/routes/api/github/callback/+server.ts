@@ -75,9 +75,8 @@ export const GET: RequestHandler = async ({ url, request }) => {
                         console.log('Sending message to opener');
                         window.opener.postMessage({
                             type: 'github-app-installation',
-                            installationId: ${installationId || 'null'},
-                            state: ${state ? `'${state}'` : 'null'},
-                            setupAction: ${setupAction ? `'${setupAction}'` : 'null'}
+                            success: true,
+                            installationId: ${installationId || 'null'}
                         }, '*');
                     }
 

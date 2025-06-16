@@ -27,8 +27,8 @@ export const GET: RequestHandler = async ({ url }) => {
 					if (window.opener) {
 						window.opener.postMessage({
 							type: 'github-app-installation',
-							installationId: '${installationId}',
-							status: 'success'
+							success: true,
+							installationId: '${installationId}'
 						}, '*');
 						window.close();
 					}

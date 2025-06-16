@@ -115,7 +115,7 @@ export class GitHubAppService {
 
 	// Generate installation URL for users
 	generateInstallationUrl(state?: string): string {
-		const baseUrl = `https://github.com/apps/bhumel-app/installations/new`;
+		const baseUrl = `https://github.com/apps/bhumel/installations/new`;
 		const params = new URLSearchParams();
 
 		if (state) {
@@ -136,7 +136,7 @@ export class GitHubAppService {
 
 	// Generate installation URL for specific repositories
 	generateInstallationUrlWithRepos(repositoryIds: string[], state?: string): string {
-		const baseUrl = `https://github.com/apps/bhumel-app/installations/new`;
+		const baseUrl = `https://github.com/apps/bhumel/installations/new`;
 		const params = new URLSearchParams();
 
 		params.append('repository_ids[]', repositoryIds.join(','));

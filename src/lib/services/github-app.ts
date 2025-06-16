@@ -13,11 +13,13 @@ interface GitHubAppConfig {
 	webhookSecret: string;
 }
 
-interface InstallationAuthResponse {
-	token: string;
-	expires_at: string;
-	permissions: Record<string, string>;
-	repository_selection: string;
+interface InstallationData {
+	installationId: number;
+	accountId: number;
+	accountLogin: string;
+	accountType: string;
+	action: string;
+	createdAt: string;
 }
 
 interface GitHubAccount {
@@ -53,15 +55,6 @@ interface InstallationRepositoriesPayload {
 	};
 	repositories_added?: GitHubRepository[];
 	repositories_removed?: GitHubRepository[];
-}
-
-interface InstallationData {
-	installationId: number;
-	accountId: number;
-	accountLogin: string;
-	accountType: string;
-	action: string;
-	createdAt: string;
 }
 
 interface IssueCommentPayload {
@@ -347,14 +340,22 @@ export class GitHubAppService {
 	// Get an installation access token
 	async getInstallationToken(installationId: number): Promise<string> {
 		try {
-			const response = (await this.octokit.auth({
+			const auth = (await this.octokit.auth({
 				type: 'installation',
 				installationId: installationId
-			})) as { data: InstallationAuthResponse };
+			})) as { token: string };
 
-			return response.data.token;
+			if (!auth.token) {
+				throw new Error('No token received from GitHub');
+			}
+
+			return auth.token;
 		} catch (error) {
-			console.error('Error getting installation token:', error);
+			console.error('Error getting installation token:', {
+				error,
+				installationId,
+				timestamp: new Date().toISOString()
+			});
 			throw error;
 		}
 	}

@@ -64,6 +64,34 @@ interface InstallationData {
 	createdAt: string;
 }
 
+interface IssueCommentPayload {
+	action: 'created' | 'edited' | 'deleted';
+	issue: {
+		number: number;
+		title: string;
+		state: string;
+		html_url: string;
+	};
+	comment: {
+		id: number;
+		body: string;
+		user: GitHubAccount;
+		html_url: string;
+	};
+	repository: GitHubRepository;
+	installation: {
+		id: number;
+	};
+}
+
+interface WebhookPayload {
+	action: string;
+	installation?: {
+		id: number;
+	};
+	delivery_id?: string;
+}
+
 export class GitHubAppService {
 	private config: GitHubAppConfig;
 	private octokit: Octokit;
@@ -94,7 +122,16 @@ export class GitHubAppService {
 			params.append('state', state);
 		}
 
-		return `${baseUrl}?${params.toString()}`;
+		const url = `${baseUrl}?${params.toString()}`;
+
+		console.log('Generated installation URL:', {
+			timestamp: new Date().toISOString(),
+			state,
+			url,
+			appId: this.config.appId
+		});
+
+		return url;
 	}
 
 	// Generate installation URL for specific repositories
@@ -148,54 +185,119 @@ export class GitHubAppService {
 	// Handle webhook events
 	async handleWebhookEvent(
 		eventType: string,
-		payload: InstallationPayload | InstallationRepositoriesPayload
+		payload: InstallationPayload | InstallationRepositoriesPayload | IssueCommentPayload
 	) {
+		const webhookPayload = payload as WebhookPayload;
+
+		console.log('Received webhook event:', {
+			timestamp: new Date().toISOString(),
+			eventType,
+			action: webhookPayload.action,
+			installationId: webhookPayload.installation?.id,
+			deliveryId: webhookPayload.delivery_id
+		});
+
 		switch (eventType) {
 			case 'installation':
 				return this.handleInstallationEvent(payload as InstallationPayload);
 			case 'installation_repositories':
 				return this.handleInstallationRepositoriesEvent(payload as InstallationRepositoriesPayload);
+			case 'issue_comment':
+				return this.handleIssueCommentEvent(payload as IssueCommentPayload);
 			default:
-				console.log(`Unhandled event type: ${eventType}`);
+				console.log(`Unhandled event type: ${eventType}`, {
+					timestamp: new Date().toISOString(),
+					payload: JSON.stringify(payload, null, 2)
+				});
+				return null;
 		}
 	}
 
 	private async handleInstallationEvent(payload: InstallationPayload) {
 		const { action, installation } = payload;
+		const timestamp = new Date().toISOString();
 
 		console.log(`Installation ${action}:`, {
+			timestamp,
 			installationId: installation.id,
 			account: installation.account.login,
-			repositorySelection: installation.repository_selection
+			accountType: installation.account.type,
+			repositorySelection: installation.repository_selection,
+			createdAt: installation.created_at
 		});
 
 		// Store installation info in your database
-		await this.storeInstallation({
+		const installationData = {
 			installationId: installation.id,
 			accountId: installation.account.id,
 			accountLogin: installation.account.login,
 			accountType: installation.account.type,
 			action,
 			createdAt: installation.created_at
-		});
+		};
+
+		await this.storeInstallation(installationData);
+
+		if (action === 'created') {
+			try {
+				// Get list of repositories for this installation
+				const repositories = await this.listInstallationRepositories(installation.id);
+				console.log('Accessible repositories after installation:', {
+					timestamp,
+					installationId: installation.id,
+					repositoryCount: repositories.length,
+					repositories: repositories.map((r) => r.full_name)
+				});
+			} catch (error) {
+				console.error('Error fetching repositories after installation:', {
+					timestamp,
+					installationId: installation.id,
+					error: error instanceof Error ? error.message : 'Unknown error'
+				});
+			}
+		}
 
 		return installation.id;
 	}
 
 	private async handleInstallationRepositoriesEvent(payload: InstallationRepositoriesPayload) {
 		const { action, installation, repositories_added, repositories_removed } = payload;
+		const timestamp = new Date().toISOString();
 
 		console.log(`Installation repositories ${action}:`, {
+			timestamp,
 			installationId: installation.id,
 			added: repositories_added?.map((r) => r.full_name),
 			removed: repositories_removed?.map((r) => r.full_name)
 		});
 
-		// Update repository access in your database
 		return {
 			installationId: installation.id,
 			repositoriesAdded: repositories_added,
 			repositoriesRemoved: repositories_removed
+		};
+	}
+
+	private async handleIssueCommentEvent(payload: IssueCommentPayload) {
+		const { action, issue, comment, repository, installation } = payload;
+		const timestamp = new Date().toISOString();
+
+		console.log(`Issue comment ${action}:`, {
+			timestamp,
+			installationId: installation.id,
+			repository: repository.full_name,
+			issueNumber: issue.number,
+			issueTitle: issue.title,
+			commentId: comment.id,
+			commentAuthor: comment.user.login
+		});
+
+		return {
+			installationId: installation.id,
+			repository: repository.full_name,
+			issueNumber: issue.number,
+			commentId: comment.id,
+			action
 		};
 	}
 

@@ -65,8 +65,18 @@
 	let recordLoading = false;
 	let shareLoading = false;
 	let error = $errorStore;
-	let installationId = '66241334'; // GitHub installation ID
+	let installationId = ''; // Will be set from the installation event
 	let shareSuccess = false;
+
+	// Listen for installation messages from the popup
+	onMount(() => {
+		window.addEventListener('message', (event) => {
+			if (event.data.type === 'github-app-installation') {
+				installationId = event.data.installationId;
+				console.log('Received installation ID:', installationId);
+			}
+		});
+	});
 
 	// Update store values when local variables change
 	$: {

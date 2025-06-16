@@ -340,6 +340,20 @@ export class GitHubAppService {
 	// Get an installation access token
 	async getInstallationToken(installationId: number): Promise<string> {
 		try {
+			// First verify the installation exists
+			try {
+				await this.octokit.rest.apps.getInstallation({
+					installation_id: installationId
+				});
+			} catch (error) {
+				console.error('Installation not found:', {
+					installationId,
+					error: error instanceof Error ? error.message : 'Unknown error',
+					timestamp: new Date().toISOString()
+				});
+				throw new Error(`Installation ${installationId} not found or no longer exists`);
+			}
+
 			const auth = (await this.octokit.auth({
 				type: 'installation',
 				installationId: installationId
@@ -352,7 +366,7 @@ export class GitHubAppService {
 			return auth.token;
 		} catch (error) {
 			console.error('Error getting installation token:', {
-				error,
+				error: error instanceof Error ? error.message : 'Unknown error',
 				installationId,
 				timestamp: new Date().toISOString()
 			});

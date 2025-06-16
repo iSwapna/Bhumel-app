@@ -108,6 +108,7 @@
 		error = null;
 
 		try {
+			console.log('Using installation ID:', $installationIdStore);
 			const response = await fetch(
 				`/api/rust-wasm-summary?installation_id=${$installationIdStore}&repository=${encodeURIComponent(
 					shareData.selectedRepo

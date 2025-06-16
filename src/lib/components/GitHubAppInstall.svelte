@@ -15,13 +15,28 @@
 		if (event.data.type === 'github-app-installation') {
 			installationStatus = event.data.success ? 'installed' : 'failed';
 			installationMessage = event.data.success ? 'Successfully installed!' : 'Installation failed';
-			installationId = event.data.installationId;
-			installationIdStore.set(installationId);
+
+			if (event.data.success && event.data.installationId) {
+				// Update both local state and store
+				installationId = event.data.installationId;
+				installationIdStore.set(event.data.installationId);
+				console.log('Updated installation ID:', event.data.installationId);
+			}
+
 			toastStore.trigger({
 				message: installationMessage,
 				background:
 					installationStatus === 'installed' ? 'variant-filled-success' : 'variant-filled-error'
 			});
+		}
+	}
+
+	// Subscribe to store changes
+	$: {
+		if ($installationIdStore) {
+			installationId = $installationIdStore;
+			installationStatus = 'installed';
+			console.log('Installation ID from store:', $installationIdStore);
 		}
 	}
 

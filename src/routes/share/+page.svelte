@@ -4,7 +4,7 @@
 	import { certify, generateLink } from '$lib/services/certify';
 	import { page } from '$app/stores';
 	import { getToastStore } from '@skeletonlabs/skeleton';
-	import { installationIdStore } from '$lib/stores/githubStore';
+	import { installationId } from '$lib/stores/githubStore';
 
 	const toastStore = getToastStore();
 
@@ -72,7 +72,7 @@
 	onMount(() => {
 		window.addEventListener('message', (event) => {
 			if (event.data.type === 'github-app-installation') {
-				installationIdStore.set(event.data.installationId);
+				installationId.set(event.data.installationId);
 				console.log('Received installation ID:', event.data.installationId);
 			}
 		});
@@ -95,7 +95,7 @@
 		if (!shareData) return;
 
 		// Validate installation ID
-		if (!$installationIdStore) {
+		if (!$installationId) {
 			error = 'Please install the GitHub App first';
 			toastStore.trigger({
 				message: 'Please install the GitHub App first',
@@ -108,9 +108,9 @@
 		error = null;
 
 		try {
-			console.log('Using installation ID:', $installationIdStore);
+			console.log('Using installation ID:', $installationId);
 			const response = await fetch(
-				`/api/rust-wasm-summary?installation_id=${$installationIdStore}&repository=${encodeURIComponent(
+				`/api/rust-wasm-summary?installation_id=${$installationId}&repository=${encodeURIComponent(
 					shareData.selectedRepo
 				)}&context=${encodeURIComponent(shareData.context)}`
 			);

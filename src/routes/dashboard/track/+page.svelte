@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
+	import { installationId } from '$lib/stores/githubStore';
 	import {
 		progressionStore,
 		loadingStore,
@@ -16,7 +18,6 @@
 	let loading = $loadingStore;
 	let error = $errorStore;
 	let progressionData = $progressionStore;
-	let installationId = '66241334'; // Hardcoded installation ID
 	let repository = $repositoryStore;
 	let maxCommits = $maxCommitsStore;
 	let dateRange = $dateRangeStore;
@@ -73,9 +74,15 @@
 		batchProgress = 0;
 
 		try {
+			// Get the current installation ID from the store
+			const currentInstallationId = get(installationId);
+			if (!currentInstallationId) {
+				throw new Error('GitHub App not installed. Please install it first.');
+			}
+
 			// Initial fetch with first batch
 			const response = await fetch(
-				`/api/analyze-gemini?installation_id=${installationId}&max_commits=${maxCommits}&batch_size=${batchSize}&repository=${repository}`
+				`/api/analyze-gemini?installation_id=${currentInstallationId}&max_commits=${maxCommits}&batch_size=${batchSize}&repository=${repository}`
 			);
 
 			if (!response.ok) {
@@ -100,8 +107,6 @@
 								'Content-Type': 'application/json'
 							},
 							body: JSON.stringify({
-								installationId: data.installationId,
-								repository: repository,
 								commitBatch: data.commitBatches[batchId - 1], // Get the correct batch from the server
 								batchId,
 								totalBatches: data.totalBatches

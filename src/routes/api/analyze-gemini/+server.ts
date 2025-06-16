@@ -7,9 +7,9 @@ const mcpService = new MCPService();
 
 // Create a new endpoint for handling batch analysis
 export const POST: RequestHandler = async ({ request }) => {
-	const { installationId, commitBatch, batchId, totalBatches } = await request.json();
+	const { commitBatch, batchId, totalBatches } = await request.json();
 
-	if (!installationId || !commitBatch || batchId === undefined || !totalBatches) {
+	if (!commitBatch || batchId === undefined || !totalBatches) {
 		return new Response('Missing required parameters', { status: 400 });
 	}
 
@@ -65,7 +65,18 @@ export const GET: RequestHandler = async ({ url }) => {
 	const repository = url.searchParams.get('repository');
 
 	if (!installationId || !repository) {
-		return new Response('Missing required parameters', { status: 400 });
+		return new Response(
+			JSON.stringify({
+				error: 'Missing required parameters',
+				message: 'Please provide installation_id and repository'
+			}),
+			{
+				status: 400,
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			}
+		);
 	}
 
 	try {

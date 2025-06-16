@@ -2,50 +2,48 @@
 	import { browser } from '$app/environment';
 	import { getToastStore } from '@skeletonlabs/skeleton';
 	import { onMount } from 'svelte';
-	import { installationIdStore } from '$lib/stores/githubStore';
+	import { installationId } from '$lib/stores/githubStore';
 
 	const toastStore = getToastStore();
 
 	let installationStatus = 'not_installed';
 	let installationMessage = '';
-	let installationId = $installationIdStore;
 
 	// Listen for messages from the installation popup
-	function handlePostMessage(event: MessageEvent) {
-		if (event.data.type === 'github-app-installation') {
-			installationStatus = event.data.success ? 'installed' : 'failed';
-			installationMessage = event.data.success ? 'Successfully installed!' : 'Installation failed';
-
-			if (event.data.success && event.data.installationId) {
-				// Update both local state and store
-				installationId = event.data.installationId;
-				installationIdStore.set(event.data.installationId);
-				console.log('Updated installation ID:', event.data.installationId);
+	onMount(() => {
+		window.addEventListener('message', (event) => {
+			if (event.data.type === 'github-app-installation') {
+				if (event.data.success) {
+					installationStatus = 'installed';
+					installationMessage = 'GitHub App installed successfully!';
+					// Update store
+					installationId.set(event.data.installationId);
+					console.log('Updated installation ID:', event.data.installationId);
+					// Show success toast
+					toastStore.trigger({
+						message: installationMessage,
+						background: 'variant-filled-success'
+					});
+				} else {
+					installationStatus = 'error';
+					installationMessage = event.data.message || 'Failed to install GitHub App';
+					// Show error toast
+					toastStore.trigger({
+						message: installationMessage,
+						background: 'variant-filled-error'
+					});
+				}
 			}
-
-			toastStore.trigger({
-				message: installationMessage,
-				background:
-					installationStatus === 'installed' ? 'variant-filled-success' : 'variant-filled-error'
-			});
-		}
-	}
+		});
+	});
 
 	// Subscribe to store changes
 	$: {
-		if ($installationIdStore) {
-			installationId = $installationIdStore;
+		if ($installationId) {
 			installationStatus = 'installed';
-			console.log('Installation ID from store:', $installationIdStore);
+			console.log('Installation ID from store:', $installationId);
 		}
 	}
-
-	onMount(() => {
-		window.addEventListener('message', handlePostMessage);
-		return () => {
-			window.removeEventListener('message', handlePostMessage);
-		};
-	});
 
 	async function handleInstall() {
 		try {
@@ -85,9 +83,9 @@
 			Connect Apps
 		{/if}
 	</button>
-	{#if installationId}
+	{#if $installationId}
 		<div class="installation-id">
-			Installation ID: {installationId}
+			Installation ID: {$installationId}
 		</div>
 	{/if}
 </div>

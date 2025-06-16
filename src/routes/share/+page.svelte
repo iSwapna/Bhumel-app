@@ -4,6 +4,7 @@
 	import { certify, generateLink } from '$lib/services/certify';
 	import { page } from '$app/stores';
 	import { getToastStore } from '@skeletonlabs/skeleton';
+	import { installationIdStore } from '$lib/stores/githubStore';
 
 	const toastStore = getToastStore();
 
@@ -65,25 +66,14 @@
 	let recordLoading = false;
 	let shareLoading = false;
 	let error = $errorStore;
-	let installationId = ''; // Will be set from the installation event
 	let shareSuccess = false;
 
-	// Load installation ID from localStorage on mount
+	// Listen for installation messages from the popup
 	onMount(() => {
-		// Load saved installation ID
-		const savedInstallationId = localStorage.getItem('githubAppInstallationId');
-		if (savedInstallationId) {
-			installationId = savedInstallationId;
-			console.log('Loaded installation ID from localStorage:', installationId);
-		}
-
-		// Listen for installation messages from the popup
 		window.addEventListener('message', (event) => {
 			if (event.data.type === 'github-app-installation') {
-				installationId = event.data.installationId;
-				// Save installation ID to localStorage
-				localStorage.setItem('githubAppInstallationId', installationId);
-				console.log('Saved installation ID to localStorage:', installationId);
+				installationIdStore.set(event.data.installationId);
+				console.log('Received installation ID:', event.data.installationId);
 			}
 		});
 	});
@@ -105,7 +95,7 @@
 		if (!shareData) return;
 
 		// Validate installation ID
-		if (!installationId) {
+		if (!$installationIdStore) {
 			error = 'Please install the GitHub App first';
 			toastStore.trigger({
 				message: 'Please install the GitHub App first',
@@ -119,7 +109,7 @@
 
 		try {
 			const response = await fetch(
-				`/api/rust-wasm-summary?installation_id=${installationId}&repository=${encodeURIComponent(
+				`/api/rust-wasm-summary?installation_id=${$installationIdStore}&repository=${encodeURIComponent(
 					shareData.selectedRepo
 				)}&context=${encodeURIComponent(shareData.context)}`
 			);

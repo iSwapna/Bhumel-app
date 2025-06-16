@@ -198,6 +198,20 @@ export class GitHubService {
 		installationId: number
 	): Promise<{ owner: string; repo: string } | null> {
 		try {
+			// First verify the installation exists
+			try {
+				await this.octokit.apps.getInstallation({
+					installation_id: installationId
+				});
+			} catch (error) {
+				console.error('Installation not found:', {
+					installationId,
+					error: error instanceof Error ? error.message : 'Unknown error',
+					timestamp: new Date().toISOString()
+				});
+				throw new Error(`Installation ${installationId} not found or no longer exists`);
+			}
+
 			const token = await this.getInstallationToken(installationId);
 			const octokit = new Octokit({ auth: token });
 

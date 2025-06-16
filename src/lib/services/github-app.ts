@@ -123,13 +123,20 @@ export class GitHubAppService {
 		const params = new URLSearchParams();
 		params.append('state', state);
 
+		// Use VERCEL_URL for the setup URL
+		const setupUrl = process.env.VERCEL_URL
+			? `https://${process.env.VERCEL_URL}/api/github/setup`
+			: 'https://bhumel-app.vercel.app/api/github/setup';
+		params.append('setup_url', setupUrl);
+
 		const url = `${baseUrl}?${params.toString()}`;
 
 		console.log('Generated installation URL:', {
 			timestamp: new Date().toISOString(),
 			state,
 			url,
-			appId: this.config.appId
+			appId: this.config.appId,
+			setupUrl
 		});
 
 		return url;
@@ -245,17 +252,43 @@ export class GitHubAppService {
 			try {
 				// Get list of repositories for this installation
 				const repositories = await this.listInstallationRepositories(installation.id);
-				console.log('Accessible repositories after installation:', {
+
+				// Group repositories by visibility
+				const publicRepos = repositories.filter((r) => !r.private);
+				const privateRepos = repositories.filter((r) => r.private);
+
+				console.log('Installation repository access:', {
 					timestamp,
 					installationId: installation.id,
-					repositoryCount: repositories.length,
-					repositories: repositories.map((r) => r.full_name)
+					totalRepositories: repositories.length,
+					publicRepositories: {
+						count: publicRepos.length,
+						names: publicRepos.map((r) => r.full_name)
+					},
+					privateRepositories: {
+						count: privateRepos.length,
+						names: privateRepos.map((r) => r.full_name)
+					},
+					repositorySelection: installation.repository_selection
+				});
+
+				// Log repository details for debugging
+				repositories.forEach((repo) => {
+					console.log(`Repository access granted:`, {
+						timestamp,
+						installationId: installation.id,
+						repository: repo.full_name,
+						isPrivate: repo.private,
+						description: repo.description || 'No description',
+						url: repo.html_url
+					});
 				});
 			} catch (error) {
 				console.error('Error fetching repositories after installation:', {
 					timestamp,
 					installationId: installation.id,
-					error: error instanceof Error ? error.message : 'Unknown error'
+					error: error instanceof Error ? error.message : 'Unknown error',
+					stack: error instanceof Error ? error.stack : undefined
 				});
 			}
 		}

@@ -1,98 +1,54 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { GITHUB_APP_WEBHOOK_SECRET } from '$env/static/private';
 import { GitHubAppService } from '$lib/services/github-app';
-import crypto from 'crypto';
 
 const githubAppService = new GitHubAppService();
 
 export const POST: RequestHandler = async ({ request }) => {
-	console.log('Webhook request received at /api/github-app-events');
-	console.log('Request headers:', Object.fromEntries(request.headers.entries()));
+	// Get the GitHub event type and signature from headers
+	const githubEvent = request.headers.get('x-github-event');
+	const signature = request.headers.get('x-hub-signature-256');
+
+	if (!githubEvent || !signature) {
+		console.error('Missing required headers:', { githubEvent, signature });
+		return new Response('Missing required headers', { status: 400 });
+	}
 
 	try {
-		// Get the signature from the request headers
-		const signature = request.headers.get('x-hub-signature-256');
-		if (!signature) {
-			console.error('Missing signature in webhook request');
-			return new Response('Missing signature', { status: 401 });
-		}
-
-		// Get the raw body
+		// Get the raw body for signature verification
 		const rawBody = await request.text();
-		console.log('Raw webhook body:', rawBody);
 
-		// Verify the signature
-		const hmac = crypto.createHmac('sha256', GITHUB_APP_WEBHOOK_SECRET);
-		const digest = hmac.update(rawBody).digest('hex');
-		const expectedSignature = `sha256=${digest}`;
-
-		if (signature !== expectedSignature) {
-			console.error('Invalid webhook signature:', {
-				received: signature,
-				expected: expectedSignature,
-				secret: GITHUB_APP_WEBHOOK_SECRET
-			});
+		// Verify webhook signature
+		const isValid = await githubAppService.verifyWebhookSignature(rawBody, signature);
+		if (!isValid) {
+			console.error('Invalid webhook signature');
 			return new Response('Invalid signature', { status: 401 });
 		}
 
-		// Parse the webhook payload
+		// Parse the payload
 		const payload = JSON.parse(rawBody);
-		const eventType = request.headers.get('x-github-event');
-		const deliveryId = request.headers.get('x-github-delivery');
-
-		console.log('Webhook event details:', {
-			deliveryId,
-			type: eventType,
+		console.log(`Received ${githubEvent} event:`, {
 			action: payload.action,
-			installation: payload.installation,
-			sender: payload.sender,
-			repository: payload.repository
+			installation: payload.installation?.id,
+			repositories: payload.repositories
 		});
 
-		// Handle installation events
-		if (eventType === 'installation') {
-			const { action, installation } = payload;
-			console.log(`Installation ${action}:`, {
-				id: installation.id,
-				account: installation.account,
-				repositories_url: installation.repositories_url,
-				html_url: installation.html_url
-			});
+		// Handle the webhook event
+		const result = await githubAppService.handleWebhookEvent(githubEvent, payload);
+		console.log('Webhook event handled:', result);
 
-			if (action === 'created') {
-				try {
-					// Get list of repositories for this installation
-					const repositories = await githubAppService.listInstallationRepositories(installation.id);
-					console.log('Accessible repositories:', repositories);
-
-					// For each repository, get its contents
-					for (const repo of repositories) {
-						try {
-							const contents = await githubAppService.getRepositoryContents(
-								installation.id,
-								repo.owner.login,
-								repo.name
-							);
-							console.log(`Contents of ${repo.full_name}:`, contents);
-						} catch (error) {
-							console.error(`Error getting contents for ${repo.full_name}:`, error);
-						}
-					}
-				} catch (error) {
-					console.error('Error accessing repositories:', error);
-				}
-			}
-		}
-
-		return json({
-			received: true,
-			event: eventType,
-			action: payload.action,
-			installationId: payload.installation?.id
-		});
+		return json({ status: 'success', event: githubEvent });
 	} catch (error) {
-		console.error('Error processing webhook:', error);
-		return new Response('Internal Server Error', { status: 500 });
+		console.error('Error handling webhook:', error);
+		return new Response(
+			JSON.stringify({
+				error: 'Webhook processing failed',
+				message: error instanceof Error ? error.message : 'Unknown error'
+			}),
+			{
+				status: 500,
+				headers: { 'Content-Type': 'application/json' }
+			}
+		);
 	}
 };

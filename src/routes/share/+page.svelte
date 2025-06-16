@@ -68,12 +68,22 @@
 	let installationId = ''; // Will be set from the installation event
 	let shareSuccess = false;
 
-	// Listen for installation messages from the popup
+	// Load installation ID from localStorage on mount
 	onMount(() => {
+		// Load saved installation ID
+		const savedInstallationId = localStorage.getItem('githubAppInstallationId');
+		if (savedInstallationId) {
+			installationId = savedInstallationId;
+			console.log('Loaded installation ID from localStorage:', installationId);
+		}
+
+		// Listen for installation messages from the popup
 		window.addEventListener('message', (event) => {
 			if (event.data.type === 'github-app-installation') {
 				installationId = event.data.installationId;
-				console.log('Received installation ID:', installationId);
+				// Save installation ID to localStorage
+				localStorage.setItem('githubAppInstallationId', installationId);
+				console.log('Saved installation ID to localStorage:', installationId);
 			}
 		});
 	});
@@ -94,6 +104,16 @@
 	async function handleSummarize() {
 		if (!shareData) return;
 
+		// Validate installation ID
+		if (!installationId) {
+			error = 'Please install the GitHub App first';
+			toastStore.trigger({
+				message: 'Please install the GitHub App first',
+				background: 'variant-filled-error'
+			});
+			return;
+		}
+
 		summarizeLoading = true;
 		error = null;
 
@@ -106,6 +126,9 @@
 
 			if (!response.ok) {
 				const errorData = await response.json();
+				if (response.status === 404) {
+					throw new Error('GitHub App installation not found. Please reinstall the app.');
+				}
 				throw new Error(errorData.message || 'Failed to generate summary');
 			}
 
@@ -118,6 +141,10 @@
 		} catch (err) {
 			console.error('Error generating summary:', err);
 			error = err instanceof Error ? err.message : 'Failed to generate summary';
+			toastStore.trigger({
+				message: error,
+				background: 'variant-filled-error'
+			});
 		} finally {
 			summarizeLoading = false;
 		}

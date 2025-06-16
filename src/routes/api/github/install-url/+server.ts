@@ -1,15 +1,19 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { GitHubAppService } from '$lib/services/github-app';
-import crypto from 'crypto';
 
 const githubAppService = new GitHubAppService();
 
 export const GET: RequestHandler = async ({ url }) => {
-	// Generate a random state parameter for security
-	const state = crypto.randomBytes(6).toString('hex');
+	// Get state from request headers
+	const state = url.searchParams.get('state');
 
-	// Generate the installation URL
+	if (!state) {
+		console.error('Missing state parameter in install-url request');
+		return new Response('Missing state parameter', { status: 400 });
+	}
+
+	// Generate the installation URL using the provided state
 	const installationUrl = githubAppService.generateInstallationUrl(state);
 
 	console.log('Installation URL Request:', {

@@ -7,6 +7,7 @@
 	import { account, send, getContractId, fundContract } from '$lib/passkeyClient';
 	import { keyId } from '$lib/stores/keyId';
 	import { contractId } from '$lib/stores/contractId';
+	import GitHubAppInstall from './GitHubAppInstall.svelte';
 
 	let userName: string = '';
 	let isLoggingIn: boolean = false;
@@ -121,6 +122,7 @@
 	{#if $keyId}
 		<div class="user-info">
 			<span class="user-name">User</span>
+			<GitHubAppInstall />
 			<button class="sign-out-btn" on:click={logout}>Logout</button>
 		</div>
 	{:else}

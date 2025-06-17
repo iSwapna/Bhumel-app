@@ -30,5 +30,11 @@ function createSessionStore<T>(key: string, initialValue: T) {
 // Create the installation ID store
 export const installationId = createSessionStore<string>('github:installationId', '');
 
+// Create the GitHub user ID store
+export const githubUserId = createSessionStore<number | null>('github:userId', null);
+
+// Create the GitHub username store
+export const githubUsername = createSessionStore<string>('github:username', '');
+
 // Create the repository store
 export const repository = createSessionStore<string>('github:repository', '');

@@ -11,25 +11,15 @@
 	const toastStore = getToastStore();
 
 	import { keyId } from '$lib/stores/keyId';
-	import { contractId } from '$lib/stores/contractId';
 
 	let isLoggedIn = false;
 
 	// Check login state on mount
 	onMount(() => {
 		if (browser) {
-			const storedKeyId = localStorage.getItem('yog:keyId');
-			const storedContractId = localStorage.getItem('yog:contractId');
-
-			if (storedKeyId) {
+			// Check if keyId exists in the persisted store
+			if ($keyId) {
 				console.log('[Auth] Found stored keyId, restoring session');
-				keyId.set(storedKeyId);
-
-				if (storedContractId) {
-					console.log('[Auth] Found stored contractId, restoring:', storedContractId);
-					contractId.set(storedContractId);
-				}
-
 				isLoggedIn = true;
 			}
 		}

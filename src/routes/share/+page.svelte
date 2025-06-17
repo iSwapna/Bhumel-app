@@ -4,7 +4,7 @@
 	import { certify, generateLink } from '$lib/services/certify';
 	import { page } from '$app/stores';
 	import { getToastStore } from '@skeletonlabs/skeleton';
-	import { installationId } from '$lib/stores/githubStore';
+	import { installationId, githubUserId, githubUsername } from '$lib/stores/githubStore';
 
 	const toastStore = getToastStore();
 
@@ -14,6 +14,11 @@
 			session: $page.data.session,
 			user: $page.data.session?.user,
 			userId: $page.data.session?.user?.id
+		});
+		console.log('GitHub data:', {
+			installationId: $installationId,
+			githubUserId: $githubUserId,
+			githubUsername: $githubUsername
 		});
 	}
 
@@ -154,9 +159,17 @@
 			return;
 		}
 
-		if (!$page.data.session?.user?.email) {
-			console.log('No user session:', $page.data.session);
-			error = 'Please sign in to record your summary';
+		// Check for GitHub user ID instead of session user email
+		if (!$githubUserId) {
+			console.log('No GitHub user ID:', {
+				githubUserId: $githubUserId,
+				githubUsername: $githubUsername
+			});
+			error = 'Please connect your GitHub account first';
+			toastStore.trigger({
+				message: 'Please connect your GitHub account first',
+				background: 'variant-filled-error'
+			});
 			return;
 		}
 
@@ -167,13 +180,10 @@
 		try {
 			console.log('Calling certify with:', {
 				summary: shareData.editedSummary,
-				userId: $page.data.session.user.email
+				userId: $githubUserId.toString(),
+				githubUsername: $githubUsername
 			});
-			const result = await certify(
-				shareData.editedSummary,
-				$page.data.session.user.email,
-				toastStore
-			);
+			const result = await certify(shareData.editedSummary, $githubUserId.toString(), toastStore);
 			console.log('Certification result:', result);
 			// Store the result for sharing
 			shareData = { ...shareData, certificationResult: result };
@@ -221,6 +231,15 @@
 		<div class="share-header">
 			<h1>Share Your Progress</h1>
 			<p>Generate a comprehensive summary of your contributions and skills</p>
+			{#if !$installationId}
+				<div class="github-notice">
+					<p>⚠️ Please connect your GitHub account to use this feature</p>
+				</div>
+			{:else if $githubUsername}
+				<div class="github-connected">
+					<p>✅ Connected as: <strong>{$githubUsername}</strong></p>
+				</div>
+			{/if}
 		</div>
 
 		<div class="repository-highlight">
@@ -244,9 +263,15 @@
 					rows="4"
 					placeholder="Enter context for the LLM..."
 				></textarea>
-				<button class="button primary" on:click={handleSummarize} disabled={summarizeLoading}>
+				<button
+					class="button primary"
+					on:click={handleSummarize}
+					disabled={summarizeLoading || !$installationId}
+				>
 					{#if summarizeLoading}
 						Processing...
+					{:else if !$installationId}
+						Connect GitHub First
 					{:else}
 						Summarize
 					{/if}
@@ -292,16 +317,20 @@
 								hasSummary: !!shareData.summary,
 								hasEditedSummary: !!shareData.editedSummary,
 								hasCertificationResult: !!shareData.certificationResult,
-								userId: $page.data.session?.user?.email
+								githubUserId: $githubUserId,
+								githubUsername: $githubUsername
 							});
 							handleRecord();
 						}}
+						disabled={recordLoading || !!shareData.certificationResult || !$githubUserId}
 						type="button"
 					>
 						{#if recordLoading}
 							Recording...
 						{:else if shareData.certificationResult}
 							Recorded
+						{:else if !$githubUserId}
+							Connect GitHub First
 						{:else}
 							Record
 						{/if}
@@ -364,9 +393,8 @@
 	}
 
 	.share-header p {
-		font-size: 1.2rem;
-		color: var(--secondary, #33001a);
-		opacity: 0.8;
+		color: var(--lightText, #666666);
+		margin-bottom: 2rem;
 	}
 
 	.repository-highlight {
@@ -602,5 +630,33 @@
 		color: #155724;
 		border-radius: 4px;
 		text-align: center;
+	}
+
+	.github-notice {
+		background-color: #fff3cd;
+		border: 1px solid #ffeaa7;
+		border-radius: 8px;
+		padding: 1rem;
+		margin-top: 1rem;
+	}
+
+	.github-notice p {
+		color: #856404;
+		margin: 0;
+		font-weight: 500;
+	}
+
+	.github-connected {
+		background-color: #d4edda;
+		border: 1px solid #c3e6cb;
+		border-radius: 8px;
+		padding: 1rem;
+		margin-top: 1rem;
+	}
+
+	.github-connected p {
+		color: #155724;
+		margin: 0;
+		font-weight: 500;
 	}
 </style>

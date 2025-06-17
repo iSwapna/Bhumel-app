@@ -105,8 +105,7 @@
 	async function logout() {
 		try {
 			keyId.reset();
-			contractId.set('');
-			localStorage.removeItem('yog:keyId');
+			contractId.reset();
 			window.location.reload();
 		} catch (err) {
 			console.log(err);

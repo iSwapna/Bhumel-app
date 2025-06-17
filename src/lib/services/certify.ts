@@ -75,11 +75,23 @@ export async function certify(
 			throw new Error('Wallet not initialized. Please complete the signup process first.');
 		}
 
-		console.log('[Certify] Using keyId:', currentKeyId);
-		console.log('[Certify] keyId type:', typeof currentKeyId);
-		console.log('[Certify] keyId length:', currentKeyId.length);
+		// Clean up the keyId if it has excessive escaping
+		let cleanKeyId = currentKeyId;
+		if (currentKeyId.length > 100) {
+			console.warn('[Certify] KeyId appears to be over-escaped, attempting to clean it');
+			try {
+				// Try to parse it as JSON to remove extra escaping
+				cleanKeyId = JSON.parse(currentKeyId);
+			} catch {
+				console.warn('[Certify] Failed to parse keyId as JSON, using as-is');
+			}
+		}
 
-		const txn = await account.sign(at.built!, { keyId: currentKeyId });
+		console.log('[Certify] Using keyId:', cleanKeyId);
+		console.log('[Certify] keyId type:', typeof cleanKeyId);
+		console.log('[Certify] keyId length:', cleanKeyId.length);
+
+		const txn = await account.sign(at.built!, { keyId: cleanKeyId });
 		await send(txn.built!);
 
 		toastStore.trigger({

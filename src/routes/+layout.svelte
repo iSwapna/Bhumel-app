@@ -35,9 +35,17 @@
 	onMount(() => {
 		if (browser) {
 			const storedKeyId = localStorage.getItem('yog:keyId');
+			const storedContractId = localStorage.getItem('yog:contractId');
+
 			if (storedKeyId) {
 				console.log('[Auth] Found stored keyId, restoring session');
 				keyId.set(storedKeyId);
+
+				if (storedContractId) {
+					console.log('[Auth] Found stored contractId, restoring:', storedContractId);
+					contractId.set(storedContractId);
+				}
+
 				isLoggedIn = true;
 			}
 		}
@@ -81,7 +89,8 @@
 
 	async function getBalance() {
 		if (!$contractId) {
-			throw new Error('No contract ID available');
+			console.log('[Balance] No contract ID available, skipping balance check');
+			return null;
 		}
 
 		console.log('[Balance] Fetching balance for contract:', $contractId);
@@ -117,6 +126,8 @@
 				getContractId
 			});
 
+			console.log('[Login] connectWallet response:', { keyIdBase64, contractId: newContractId });
+
 			if (!keyIdBase64) {
 				throw new Error('Failed to get keyId from wallet connection');
 			}
@@ -129,19 +140,53 @@
 			if (newContractId) {
 				console.log('[Login] ContractId received:', newContractId);
 				contractId.set(newContractId);
+				localStorage.setItem('yog:contractId', newContractId);
 
 				// Only attempt balance check if we have a contract ID
 				try {
 					const balance = await getBalance();
-					console.log('[Login] Initial balance:', balance);
+					if (balance) {
+						console.log('[Login] Initial balance:', balance);
+					}
 				} catch (balanceError) {
 					console.error('[Login] Error getting initial balance:', balanceError);
 					// Don't throw here, as we're still logged in even if balance check fails
 				}
 			} else {
 				console.log('[Login] No contract ID received from wallet connection');
-				// Clear any existing contract ID
-				contractId.set('');
+				console.log('[Login] Attempting to get contract ID from server...');
+
+				// Try to get the contract ID from the server using the keyId
+				try {
+					const contractIdFromServer = await getContractId(keyIdBase64);
+					console.log('[Login] Contract ID from server:', contractIdFromServer);
+					if (contractIdFromServer) {
+						contractId.set(contractIdFromServer);
+						localStorage.setItem('yog:contractId', contractIdFromServer);
+						console.log('[Login] Contract ID set from server');
+
+						// Try balance check again
+						try {
+							const balance = await getBalance();
+							if (balance) {
+								console.log('[Login] Initial balance after server lookup:', balance);
+							}
+						} catch (balanceError) {
+							console.error(
+								'[Login] Error getting initial balance after server lookup:',
+								balanceError
+							);
+						}
+					} else {
+						console.log('[Login] No contract ID found on server either');
+						contractId.set('');
+						localStorage.removeItem('yog:contractId');
+					}
+				} catch (serverError) {
+					console.error('[Login] Error getting contract ID from server:', serverError);
+					contractId.set('');
+					localStorage.removeItem('yog:contractId');
+				}
 			}
 
 			isLoggedIn = true;
@@ -173,6 +218,7 @@
 			keyId.reset();
 			contractId.set('');
 			localStorage.removeItem('yog:keyId');
+			localStorage.removeItem('yog:contractId');
 
 			// Reload the page to clear any cached state
 			window.location.reload();
@@ -251,6 +297,7 @@
 				keyId.set(keyIdBase64);
 				console.log('[Signup] KeyId after setting store:', get(keyId));
 				contractId.set(cid);
+				localStorage.setItem('yog:contractId', cid);
 				console.log('[Signup] ContractId set:', $contractId);
 
 				if (!signedTx) {

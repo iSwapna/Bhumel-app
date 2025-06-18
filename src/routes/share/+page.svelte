@@ -1,6 +1,28 @@
 <script lang="ts">
-	import { shareDataStore, loadingStore, errorStore } from '$lib/stores/shareStore';
+	import { shareDataStore, errorStore } from '$lib/stores/shareStore';
 	import { onMount } from 'svelte';
+	import { certify, generateLink } from '$lib/services/certify';
+	import { page } from '$app/stores';
+	import { getToastStore } from '@skeletonlabs/skeleton';
+	import { installationId, githubUserId, githubUsername } from '$lib/stores/githubStore';
+
+	const toastStore = getToastStore();
+
+	// Debug session data
+	$: {
+		console.log('Session data:', {
+			session: $page.data.session,
+			user: $page.data.session?.user,
+			userId: $page.data.session?.user?.id
+		});
+		console.log('GitHub data:', {
+			installationId: $installationId,
+			githubUserId: $githubUserId,
+			githubUsername: $githubUsername,
+			githubUsernameType: typeof $githubUsername,
+			githubUsernameLength: typeof $githubUsername === 'string' ? $githubUsername.length : 'N/A'
+		});
+	}
 
 	interface Skill {
 		name: string;
@@ -15,9 +37,34 @@
 		isEditing: boolean;
 		editedSummary: string;
 		skills: Skill[];
+		certificationResult?: {
+			certificate: {
+				hash: string;
+				id: string;
+			};
+			timestamp: number;
+			userId: string;
+			username: string;
+		};
 	}
 
-	const defaultShareData: ShareData = {
+	// Initialize share data if not exists
+	onMount(() => {
+		if (!$shareDataStore) {
+			$shareDataStore = {
+				context: '',
+				selectedRepo: 'algol',
+				summary: '',
+				confidenceScore: 0,
+				isEditing: false,
+				editedSummary: '',
+				skills: []
+			};
+		}
+	});
+
+	// Get store values
+	let shareData: ShareData = $shareDataStore || {
 		context: '',
 		selectedRepo: 'algol',
 		summary: '',
@@ -26,40 +73,64 @@
 		editedSummary: '',
 		skills: []
 	};
+	let summarizeLoading = false;
+	let recordLoading = false;
+	let shareLoading = false;
+	let error = $errorStore;
+	let shareSuccess = false;
 
-	// Initialize share data if not exists
+	// Listen for installation messages from the popup
 	onMount(() => {
-		if (!$shareDataStore) {
-			$shareDataStore = defaultShareData;
-		}
+		window.addEventListener('message', (event) => {
+			if (event.data.type === 'github-app-installation') {
+				installationId.set(event.data.installationId);
+				console.log('Received installation ID:', event.data.installationId);
+			}
+		});
 	});
 
-	// Get store values
-	let shareData: ShareData = $shareDataStore || defaultShareData;
-	let loading = $loadingStore;
-	let error = $errorStore;
-	let installationId = '66241334'; // GitHub installation ID
-
 	// Update store values when local variables change
-	$: $shareDataStore = shareData;
-	$: $loadingStore = loading;
+	$: {
+		console.log('shareData updated:', {
+			hasSummary: !!shareData.summary,
+			hasEditedSummary: !!shareData.editedSummary,
+			hasCertificationResult: !!shareData.certificationResult,
+			recordLoading,
+			buttonDisabled: recordLoading || !!shareData.certificationResult
+		});
+		$shareDataStore = shareData;
+	}
 	$: $errorStore = error;
 
 	async function handleSummarize() {
 		if (!shareData) return;
 
-		loading = true;
+		// Validate installation ID
+		if (!$installationId) {
+			error = 'Please install the GitHub App first';
+			toastStore.trigger({
+				message: 'Please install the GitHub App first',
+				background: 'variant-filled-error'
+			});
+			return;
+		}
+
+		summarizeLoading = true;
 		error = null;
 
 		try {
+			console.log('Using installation ID:', $installationId);
 			const response = await fetch(
-				`/api/rust-wasm-summary?installation_id=${installationId}&repository=${encodeURIComponent(
+				`/api/rust-wasm-summary?installation_id=${$installationId}&repository=${encodeURIComponent(
 					shareData.selectedRepo
 				)}&context=${encodeURIComponent(shareData.context)}`
 			);
 
 			if (!response.ok) {
 				const errorData = await response.json();
+				if (response.status === 404) {
+					throw new Error('GitHub App installation not found. Please reinstall the app.');
+				}
 				throw new Error(errorData.message || 'Failed to generate summary');
 			}
 
@@ -67,11 +138,123 @@
 			shareData.summary = data.summary.summary;
 			shareData.editedSummary = shareData.summary;
 			shareData.skills = data.summary.skills || [];
+			// Reset certification result when new summary is generated
+			shareData.certificationResult = undefined;
 		} catch (err) {
 			console.error('Error generating summary:', err);
 			error = err instanceof Error ? err.message : 'Failed to generate summary';
+			toastStore.trigger({
+				message: error,
+				background: 'variant-filled-error'
+			});
 		} finally {
-			loading = false;
+			summarizeLoading = false;
+		}
+	}
+
+	async function handleRecord() {
+		console.log('handleRecord called');
+		console.log('Current shareData:', {
+			summary: shareData.summary,
+			editedSummary: shareData.editedSummary,
+			certificationResult: shareData.certificationResult
+		});
+		if (!shareData?.editedSummary) {
+			console.log('No edited summary');
+			error = 'Please generate a summary first';
+			return;
+		}
+
+		// Check for GitHub user ID instead of session user email
+		if (!$githubUserId) {
+			console.log('No GitHub user ID:', {
+				githubUserId: $githubUserId,
+				githubUsername: $githubUsername
+			});
+			error = 'Please connect your GitHub account first';
+			toastStore.trigger({
+				message: 'Please connect your GitHub account first',
+				background: 'variant-filled-error'
+			});
+			return;
+		}
+
+		// Use GitHub username or fallback to user ID if username is not available
+		const usernameToUse =
+			typeof $githubUsername === 'string' && $githubUsername.trim() !== ''
+				? $githubUsername
+				: `user-${$githubUserId}`;
+
+		console.log('Username resolution:', {
+			githubUsername: $githubUsername,
+			githubUsernameType: typeof $githubUsername,
+			githubUsernameLength: typeof $githubUsername === 'string' ? $githubUsername.length : 0,
+			usernameToUse,
+			githubUserId: $githubUserId
+		});
+
+		console.log('Starting record process');
+		recordLoading = true;
+		error = null;
+
+		try {
+			console.log('Calling certify with:', {
+				summary: shareData.editedSummary,
+				userId: $githubUserId.toString(),
+				username: usernameToUse
+			});
+			const result = await certify(
+				shareData.editedSummary,
+				$githubUserId.toString(),
+				usernameToUse,
+				toastStore
+			);
+			console.log('Certification result:', result);
+			// Store the result for sharing
+			shareData = { ...shareData, certificationResult: result };
+		} catch (err) {
+			console.error('Error recording summary:', err);
+			error = err instanceof Error ? err.message : 'Failed to record summary';
+		} finally {
+			recordLoading = false;
+		}
+	}
+
+	async function handleShare() {
+		if (!shareData.certificationResult) {
+			error = 'Please record the summary first';
+			return;
+		}
+
+		shareLoading = true;
+		error = null;
+
+		try {
+			console.log('Generating link with:', {
+				username: shareData.certificationResult.username,
+				hash: shareData.certificationResult.certificate.hash,
+				timestamp: shareData.certificationResult.timestamp,
+				githubUsername: $githubUsername,
+				githubUsernameType: typeof $githubUsername
+			});
+
+			const link = generateLink(
+				shareData.certificationResult.username,
+				shareData.certificationResult.certificate.hash,
+				shareData.certificationResult.timestamp
+			);
+			const fullUrl = window.location.origin + link;
+			console.log('Generated URL:', fullUrl);
+			await navigator.clipboard.writeText(fullUrl);
+			shareSuccess = true;
+			setTimeout(() => {
+				shareSuccess = false;
+			}, 3000);
+		} catch (err) {
+			console.error('Error sharing:', err);
+			error = err instanceof Error ? err.message : 'Failed to share';
+		} finally {
+			shareLoading = false;
 		}
 	}
 </script>
@@ -83,6 +266,15 @@
 		<div class="share-header">
 			<h1>Share Your Progress</h1>
 			<p>Generate a comprehensive summary of your contributions and skills</p>
+			{#if !$installationId}
+				<div class="github-notice">
+					<p>⚠️ Please connect your GitHub account to use this feature</p>
+				</div>
+			{:else if $githubUsername}
+				<div class="github-connected">
+					<p>✅ Connected as: <strong>{$githubUsername}</strong></p>
+				</div>
+			{/if}
 		</div>
 
 		<div class="repository-highlight">
@@ -106,9 +298,15 @@
 					rows="4"
 					placeholder="Enter context for the LLM..."
 				></textarea>
-				<button class="button primary" on:click={handleSummarize} disabled={loading}>
-					{#if loading}
+				<button
+					class="button primary"
+					on:click={handleSummarize}
+					disabled={summarizeLoading || !$installationId}
+				>
+					{#if summarizeLoading}
 						Processing...
+					{:else if !$installationId}
+						Connect GitHub First
 					{:else}
 						Summarize
 					{/if}
@@ -145,13 +343,67 @@
 					</div>
 				{/if}
 				<div class="button-group">
-					<button class="button success" on:click={() => console.log('Record clicked')}>
-						Record
+					<button
+						class="button success"
+						on:click={() => {
+							console.log('Button clicked - starting handleRecord');
+							console.log('Current state:', {
+								shareData,
+								hasSummary: !!shareData.summary,
+								hasEditedSummary: !!shareData.editedSummary,
+								hasCertificationResult: !!shareData.certificationResult,
+								githubUserId: $githubUserId,
+								githubUsername: $githubUsername
+							});
+							handleRecord();
+						}}
+						disabled={recordLoading || !!shareData.certificationResult || !$githubUserId}
+						type="button"
+					>
+						{#if recordLoading}
+							Recording...
+						{:else if shareData.certificationResult}
+							Recorded
+						{:else if !$githubUserId}
+							Connect GitHub First
+						{:else}
+							Record
+						{/if}
 					</button>
-					<button class="button accent" on:click={() => console.log('Share clicked')}>
-						Share
+					<button
+						class="button accent"
+						on:click={handleShare}
+						disabled={shareLoading || !shareData.certificationResult}
+					>
+						{#if shareLoading}
+							Sharing...
+						{:else if shareSuccess}
+							Copied!
+						{:else}
+							Share
+						{/if}
 					</button>
 				</div>
+
+				{#if shareSuccess}
+					<div class="success-message">Verification link copied to clipboard!</div>
+				{/if}
+
+				{#if shareData.certificationResult}
+					<div class="certification-info">
+						<h3>Certification Details</h3>
+						<p><strong>Username:</strong> {shareData.certificationResult.username}</p>
+						<p><strong>User ID:</strong> {shareData.certificationResult.userId}</p>
+						<p>
+							<strong>Timestamp:</strong>
+							{new Date(shareData.certificationResult.timestamp).toLocaleString()}
+						</p>
+						<p>
+							<strong>Hash:</strong>
+							<span class="hash">{shareData.certificationResult.certificate.hash}</span>
+						</p>
+					</div>
+				{/if}
 			</div>
 		</div>
 	{/if}
@@ -178,9 +430,8 @@
 	}
 
 	.share-header p {
-		font-size: 1.2rem;
-		color: var(--secondary, #33001a);
-		opacity: 0.8;
+		color: var(--lightText, #666666);
+		margin-bottom: 2rem;
 	}
 
 	.repository-highlight {
@@ -270,11 +521,15 @@
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.2s ease;
+		position: relative;
+		z-index: 1;
+		pointer-events: auto;
 	}
 
 	.button:disabled {
 		opacity: 0.7;
 		cursor: not-allowed;
+		pointer-events: none;
 	}
 
 	.button.primary {
@@ -298,6 +553,7 @@
 	.button.success {
 		background-color: var(--record, #b81b2e);
 		color: white;
+		pointer-events: auto;
 	}
 
 	.button.success:hover:not(:disabled) {
@@ -309,6 +565,9 @@
 		gap: 1rem;
 		margin-top: 1rem;
 		flex-wrap: wrap;
+		position: relative;
+		z-index: 0;
+		pointer-events: auto;
 	}
 
 	.skills-section {
@@ -371,5 +630,70 @@
 		.button {
 			width: 100%;
 		}
+	}
+
+	.certification-info {
+		margin-top: 1.5rem;
+		padding: 1rem;
+		background-color: #f8f9fa;
+		border-radius: 8px;
+		border: 1px solid #e9ecef;
+	}
+
+	.certification-info h3 {
+		margin: 0 0 0.75rem 0;
+		color: var(--secondary, #33001a);
+		font-size: 1.2rem;
+	}
+
+	.certification-info p {
+		margin: 0.5rem 0;
+		color: #495057;
+	}
+
+	.certification-info .hash {
+		font-family: monospace;
+		word-break: break-all;
+		font-size: 0.9rem;
+		background-color: #e9ecef;
+		padding: 0.25rem 0.5rem;
+		border-radius: 4px;
+	}
+
+	.success-message {
+		margin-top: 1rem;
+		padding: 0.75rem;
+		background-color: #d4edda;
+		color: #155724;
+		border-radius: 4px;
+		text-align: center;
+	}
+
+	.github-notice {
+		background-color: #fff3cd;
+		border: 1px solid #ffeaa7;
+		border-radius: 8px;
+		padding: 1rem;
+		margin-top: 1rem;
+	}
+
+	.github-notice p {
+		color: #856404;
+		margin: 0;
+		font-weight: 500;
+	}
+
+	.github-connected {
+		background-color: #d4edda;
+		border: 1px solid #c3e6cb;
+		border-radius: 8px;
+		padding: 1rem;
+		margin-top: 1rem;
+	}
+
+	.github-connected p {
+		color: #155724;
+		margin: 0;
+		font-weight: 500;
 	}
 </style>

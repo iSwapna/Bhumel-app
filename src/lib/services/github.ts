@@ -5,13 +5,14 @@ import { createAppAuth } from '@octokit/auth-app';
 interface GitHubCommit {
 	sha: string;
 	commit: {
-		message: string;
 		author?: {
 			date?: string;
 			name?: string;
 			email?: string;
 		};
+		message: string;
 	};
+	html_url: string;
 	files?: GitHubCommitFile[];
 }
 
@@ -198,6 +199,20 @@ export class GitHubService {
 		installationId: number
 	): Promise<{ owner: string; repo: string } | null> {
 		try {
+			// First verify the installation exists
+			try {
+				await this.octokit.apps.getInstallation({
+					installation_id: installationId
+				});
+			} catch (error) {
+				console.error('Installation not found:', {
+					installationId,
+					error: error instanceof Error ? error.message : 'Unknown error',
+					timestamp: new Date().toISOString()
+				});
+				throw new Error(`Installation ${installationId} not found or no longer exists`);
+			}
+
 			const token = await this.getInstallationToken(installationId);
 			const octokit = new Octokit({ auth: token });
 
@@ -244,9 +259,61 @@ export class GitHubService {
 		}
 	}
 
-	async getCommitsChronological(installationId: number): Promise<GitHubCommit[]> {
+	async getCommitsChronological(
+		installationId: number,
+		maxCommits: number = 10
+	): Promise<GitHubCommit[]> {
 		try {
-			const commits = await this.getCommits(installationId);
+			// First verify the installation exists
+			try {
+				await this.octokit.apps.getInstallation({
+					installation_id: installationId
+				});
+			} catch (error) {
+				console.error('Installation not found:', {
+					installationId,
+					error: error instanceof Error ? error.message : 'Unknown error',
+					timestamp: new Date().toISOString()
+				});
+				throw new Error(`Installation ${installationId} not found or no longer exists`);
+			}
+
+			const token = await this.getInstallationToken(installationId);
+			const octokit = new Octokit({ auth: token });
+
+			const { data } = await octokit.apps.listReposAccessibleToInstallation({
+				installation_id: installationId,
+				per_page: 1
+			});
+
+			if (!data.repositories || data.repositories.length === 0) {
+				throw new Error('No repositories found for this installation');
+			}
+
+			const repo = data.repositories[0];
+			const response = await octokit.repos.listCommits({
+				owner: repo.owner.login,
+				repo: repo.name,
+				per_page: maxCommits
+			});
+
+			// Map the response to our GitHubCommit type
+			const commits: GitHubCommit[] = response.data.map((commit) => ({
+				sha: commit.sha,
+				commit: {
+					author: commit.commit.author || undefined,
+					message: commit.commit.message
+				},
+				html_url: commit.html_url,
+				files: commit.files?.map((file) => ({
+					filename: file.filename,
+					status: file.status,
+					additions: file.additions,
+					deletions: file.deletions,
+					patch: file.patch
+				}))
+			}));
+
 			// Sort commits by date in ascending order (oldest first)
 			return commits.sort((a, b) => {
 				const dateA = new Date(a.commit.author?.date || 0);
@@ -254,7 +321,7 @@ export class GitHubService {
 				return dateA.getTime() - dateB.getTime();
 			});
 		} catch (error) {
-			console.error('Error getting chronological commits:', error);
+			console.error('Error getting commits:', error);
 			throw error;
 		}
 	}

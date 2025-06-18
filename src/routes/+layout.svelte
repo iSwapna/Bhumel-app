@@ -1,18 +1,55 @@
-<script>
+<script lang="ts">
 	import { page } from '$app/stores';
 	import '../app.postcss';
+	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
+
+	// Initialize stores first
+	import { initializeStores, Toast, Modal, getToastStore } from '@skeletonlabs/skeleton';
+	initializeStores();
+	const toastStore = getToastStore();
+
+	import { keyId } from '$lib/stores/keyId';
+
+	let isLoggedIn = false;
+
+	// Check login state on mount
+	onMount(() => {
+		if (browser) {
+			// Check if keyId exists in the persisted store
+			if ($keyId) {
+				console.log('[Auth] Found stored keyId, restoring session');
+				isLoggedIn = true;
+			}
+		}
+	});
+
+	// Update isLoggedIn when keyId changes
+	$: isLoggedIn = !!$keyId;
+
+	// Check if current route requires authentication
+	$: if (browser) {
+		const protectedRoutes = ['/discover', '/dashboard', '/share'];
+		const currentPath = $page.url.pathname;
+		const isProtectedRoute = protectedRoutes.some((route) => currentPath.startsWith(route));
+
+		if (isProtectedRoute && !isLoggedIn) {
+			console.log('[Auth] Redirecting from protected route:', currentPath);
+			toastStore.trigger({
+				message: 'Please log in to access this page',
+				background: 'variant-filled-warning'
+			});
+			goto('/');
+		}
+	}
 
 	// Floating UI for Popups
 	import { computePosition, autoUpdate, flip, shift, offset, arrow } from '@floating-ui/dom';
 	import { storePopup } from '@skeletonlabs/skeleton';
 	storePopup.set({ computePosition, autoUpdate, flip, shift, offset, arrow });
 
-	import { initializeStores, Toast, Modal } from '@skeletonlabs/skeleton';
-	initializeStores();
-
-	function signup() {
-		window.location.href = '/signup';
-	}
+	import ConnectButtons from '$lib/components/ConnectButtons.svelte';
 </script>
 
 <Toast />
@@ -28,26 +65,7 @@
 				<a href="/share" class="nav-tab">Share</a>
 			</div>
 
-			<div class="user-section">
-				{#if $page.data.session}
-					<div class="user-info">
-						<span class="user-name">{$page.data.session.user?.name || 'User'}</span>
-						<form action="/signout" method="POST">
-							<button type="submit" class="sign-out-btn">Sign Out</button>
-						</form>
-					</div>
-				{:else}
-					<div class="auth-buttons">
-						<form action="/signin?provider=github" method="POST">
-							<button type="submit" class="sign-in-btn">Sign In</button>
-						</form>
-						<!-- <form action="/signup" method="POST">
-							<button type="submit" class="sign-up-btn">Sign Up</button>
-						</form> -->
-						<button class="sign-up-btn" onclick={signup}>Signup</button>
-					</div>
-				{/if}
-			</div>
+			<ConnectButtons />
 		</nav>
 	</header>
 
@@ -57,8 +75,7 @@
 </div>
 
 <style>
-	/* Import strong, bold fonts */
-	@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;500;600;700;900&family=Roboto:wght@400;500;700;900&display=swap');
+	/* Remove Google Fonts import since we're using Fontsource */
 
 	:global(body) {
 		font-family: 'Roboto', sans-serif;
@@ -136,73 +153,6 @@
 		width: 100%;
 	}
 
-	.user-section {
-		margin-left: auto;
-	}
-
-	.user-info {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-	}
-
-	.user-name {
-		font-weight: 700;
-		color: #33001a;
-		font-family: 'Roboto', sans-serif;
-	}
-
-	.sign-in-btn,
-	.sign-out-btn,
-	.sign-up-btn {
-		padding: 0.6rem 1.5rem;
-		border-radius: 4px;
-		font-weight: 700;
-		transition: all 0.2s;
-		border: none;
-		font-size: 0.95rem;
-		cursor: pointer;
-		font-family: 'Roboto', sans-serif;
-		letter-spacing: 0.05em;
-		text-transform: uppercase;
-	}
-
-	.sign-in-btn {
-		background-color: #800020;
-		color: white;
-	}
-
-	.sign-up-btn {
-		background-color: #33001a;
-		color: white;
-	}
-
-	.sign-out-btn {
-		color: #33001a;
-		border: 2px solid #800020;
-		background-color: transparent;
-	}
-
-	.sign-in-btn:hover {
-		background-color: #600018;
-		transform: translateY(-1px);
-	}
-
-	.sign-up-btn:hover {
-		background-color: #1a000d;
-		transform: translateY(-1px);
-	}
-
-	.sign-out-btn:hover {
-		background-color: rgba(128, 0, 32, 0.05);
-		transform: translateY(-1px);
-	}
-
-	.auth-buttons {
-		display: flex;
-		gap: 1rem;
-	}
-
 	main {
 		flex: 1;
 	}
@@ -218,14 +168,6 @@
 			width: 100%;
 			justify-content: center;
 			gap: 1.5rem;
-		}
-
-		.user-section {
-			margin-left: 0;
-			width: 100%;
-			display: flex;
-			justify-content: center;
-			margin-top: 0.5rem;
 		}
 
 		.nav-tab {

@@ -1,3 +1,3 @@
-import { writable, type Writable } from 'svelte/store';
+import { persisted } from 'svelte-persisted-store';
 
-export const contractId: Writable<string> = writable();
+export const contractId = persisted<string>('yog:contractId', '');

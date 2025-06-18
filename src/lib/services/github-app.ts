@@ -1,0 +1,426 @@
+import { createAppAuth } from '@octokit/auth-app';
+import { Octokit } from '@octokit/rest';
+import crypto from 'crypto';
+import {
+	GITHUB_APP_ID,
+	GITHUB_APP_PRIVATE_KEY,
+	GITHUB_APP_WEBHOOK_SECRET
+} from '$env/static/private';
+
+interface GitHubAppConfig {
+	appId: string;
+	privateKey: string;
+	webhookSecret: string;
+}
+
+interface InstallationData {
+	installationId: number;
+	accountId: number;
+	accountLogin: string;
+	accountType: string;
+	action: string;
+	createdAt: string;
+}
+
+interface GitHubAccount {
+	id: number;
+	login: string;
+	type: string;
+}
+
+interface GitHubRepository {
+	id: number;
+	name: string;
+	full_name: string;
+	private: boolean;
+	html_url: string;
+	description: string | null;
+}
+
+interface InstallationPayload {
+	action: 'created' | 'deleted' | 'suspend' | 'unsuspend';
+	installation: {
+		id: number;
+		account: GitHubAccount;
+		repository_selection: string;
+		created_at: string;
+	};
+}
+
+interface InstallationRepositoriesPayload {
+	action: 'added' | 'removed';
+	installation: {
+		id: number;
+		account: GitHubAccount;
+	};
+	repositories_added?: GitHubRepository[];
+	repositories_removed?: GitHubRepository[];
+}
+
+interface IssueCommentPayload {
+	action: 'created' | 'edited' | 'deleted';
+	issue: {
+		number: number;
+		title: string;
+		state: string;
+		html_url: string;
+	};
+	comment: {
+		id: number;
+		body: string;
+		user: GitHubAccount;
+		html_url: string;
+	};
+	repository: GitHubRepository;
+	installation: {
+		id: number;
+	};
+}
+
+interface WebhookPayload {
+	action: string;
+	installation?: {
+		id: number;
+	};
+	delivery_id?: string;
+}
+
+export class GitHubAppService {
+	private config: GitHubAppConfig;
+	private octokit: Octokit;
+
+	constructor() {
+		this.config = {
+			appId: GITHUB_APP_ID,
+			privateKey: GITHUB_APP_PRIVATE_KEY,
+			webhookSecret: GITHUB_APP_WEBHOOK_SECRET
+		};
+
+		// Initialize Octokit for app-level operations
+		this.octokit = new Octokit({
+			authStrategy: createAppAuth,
+			auth: {
+				appId: this.config.appId,
+				privateKey: this.config.privateKey
+			}
+		});
+	}
+
+	// Generate installation URL for users
+	generateInstallationUrl(state: string): string {
+		if (!state) {
+			throw new Error('State parameter is required for installation URL');
+		}
+
+		const baseUrl = `https://github.com/apps/bhumel/installations/new`;
+		const params = new URLSearchParams();
+		params.append('state', state);
+
+		// Use VERCEL_URL for the setup URL
+		const setupUrl = process.env.VERCEL_URL
+			? `https://${process.env.VERCEL_URL}/api/github/setup`
+			: 'https://bhumel-app.vercel.app/api/github/setup';
+		params.append('setup_url', setupUrl);
+
+		const url = `${baseUrl}?${params.toString()}`;
+
+		console.log('Generated installation URL:', {
+			timestamp: new Date().toISOString(),
+			state,
+			url,
+			appId: this.config.appId,
+			setupUrl
+		});
+
+		return url;
+	}
+
+	// Generate installation URL for specific repositories
+	generateInstallationUrlWithRepos(repositoryIds: string[], state: string): string {
+		if (!state) {
+			throw new Error('State parameter is required for installation URL');
+		}
+
+		const baseUrl = `https://github.com/apps/bhumel/installations/new`;
+		const params = new URLSearchParams();
+
+		params.append('repository_ids[]', repositoryIds.join(','));
+		params.append('state', state);
+
+		return `${baseUrl}?${params.toString()}`;
+	}
+
+	// Get all installations for the app
+	async getAllInstallations() {
+		try {
+			const response = await this.octokit.rest.apps.listInstallations();
+			return response.data;
+		} catch (error) {
+			console.error('Error fetching installations:', error);
+			throw error;
+		}
+	}
+
+	// Get installation by account
+	async getInstallationByAccount(username: string) {
+		try {
+			const installations = await this.getAllInstallations();
+			return installations.find((installation) => installation.account?.login === username);
+		} catch (error) {
+			console.error('Error fetching installation by account:', error);
+			throw error;
+		}
+	}
+
+	// Verify webhook signature
+	verifyWebhookSignature(payload: string, signature: string): boolean {
+		const expectedSignature = crypto
+			.createHmac('sha256', this.config.webhookSecret)
+			.update(payload)
+			.digest('hex');
+
+		return crypto.timingSafeEqual(
+			Buffer.from(`sha256=${expectedSignature}`),
+			Buffer.from(signature)
+		);
+	}
+
+	// Handle webhook events
+	async handleWebhookEvent(
+		eventType: string,
+		payload: InstallationPayload | InstallationRepositoriesPayload | IssueCommentPayload
+	) {
+		const webhookPayload = payload as WebhookPayload;
+
+		console.log('Received webhook event:', {
+			timestamp: new Date().toISOString(),
+			eventType,
+			action: webhookPayload.action,
+			installationId: webhookPayload.installation?.id,
+			deliveryId: webhookPayload.delivery_id
+		});
+
+		switch (eventType) {
+			case 'installation':
+				return this.handleInstallationEvent(payload as InstallationPayload);
+			case 'installation_repositories':
+				return this.handleInstallationRepositoriesEvent(payload as InstallationRepositoriesPayload);
+			case 'issue_comment':
+				return this.handleIssueCommentEvent(payload as IssueCommentPayload);
+			default:
+				console.log(`Unhandled event type: ${eventType}`, {
+					timestamp: new Date().toISOString(),
+					payload: JSON.stringify(payload, null, 2)
+				});
+				return null;
+		}
+	}
+
+	private async handleInstallationEvent(payload: InstallationPayload) {
+		const { action, installation } = payload;
+		const timestamp = new Date().toISOString();
+
+		console.log(`Installation ${action}:`, {
+			timestamp,
+			installationId: installation.id,
+			account: installation.account.login,
+			accountType: installation.account.type,
+			repositorySelection: installation.repository_selection,
+			createdAt: installation.created_at
+		});
+
+		// Store installation info in your database
+		const installationData = {
+			installationId: installation.id,
+			accountId: installation.account.id,
+			accountLogin: installation.account.login,
+			accountType: installation.account.type,
+			action,
+			createdAt: installation.created_at
+		};
+
+		await this.storeInstallation(installationData);
+
+		if (action === 'created') {
+			try {
+				// Get list of repositories for this installation
+				const repositories = await this.listInstallationRepositories(installation.id);
+
+				// Group repositories by visibility
+				const publicRepos = repositories.filter((r) => !r.private);
+				const privateRepos = repositories.filter((r) => r.private);
+
+				console.log('Installation repository access:', {
+					timestamp,
+					installationId: installation.id,
+					totalRepositories: repositories.length,
+					publicRepositories: {
+						count: publicRepos.length,
+						names: publicRepos.map((r) => r.full_name)
+					},
+					privateRepositories: {
+						count: privateRepos.length,
+						names: privateRepos.map((r) => r.full_name)
+					},
+					repositorySelection: installation.repository_selection
+				});
+
+				// Log repository details for debugging
+				repositories.forEach((repo) => {
+					console.log(`Repository access granted:`, {
+						timestamp,
+						installationId: installation.id,
+						repository: repo.full_name,
+						isPrivate: repo.private,
+						description: repo.description || 'No description',
+						url: repo.html_url
+					});
+				});
+			} catch (error) {
+				console.error('Error fetching repositories after installation:', {
+					timestamp,
+					installationId: installation.id,
+					error: error instanceof Error ? error.message : 'Unknown error',
+					stack: error instanceof Error ? error.stack : undefined
+				});
+			}
+		}
+
+		return installation.id;
+	}
+
+	private async handleInstallationRepositoriesEvent(payload: InstallationRepositoriesPayload) {
+		const { action, installation, repositories_added, repositories_removed } = payload;
+		const timestamp = new Date().toISOString();
+
+		console.log(`Installation repositories ${action}:`, {
+			timestamp,
+			installationId: installation.id,
+			added: repositories_added?.map((r) => r.full_name),
+			removed: repositories_removed?.map((r) => r.full_name)
+		});
+
+		return {
+			installationId: installation.id,
+			repositoriesAdded: repositories_added,
+			repositoriesRemoved: repositories_removed
+		};
+	}
+
+	private async handleIssueCommentEvent(payload: IssueCommentPayload) {
+		const { action, issue, comment, repository, installation } = payload;
+		const timestamp = new Date().toISOString();
+
+		console.log(`Issue comment ${action}:`, {
+			timestamp,
+			installationId: installation.id,
+			repository: repository.full_name,
+			issueNumber: issue.number,
+			issueTitle: issue.title,
+			commentId: comment.id,
+			commentAuthor: comment.user.login
+		});
+
+		return {
+			installationId: installation.id,
+			repository: repository.full_name,
+			issueNumber: issue.number,
+			commentId: comment.id,
+			action
+		};
+	}
+
+	// Store installation data (implement based on your database)
+	private async storeInstallation(installationData: InstallationData) {
+		// Example: Store in database
+		console.log('Storing installation data:', installationData);
+		// await database.installations.create(installationData);
+	}
+
+	// Get an installation access token
+	async getInstallationToken(installationId: number): Promise<string> {
+		try {
+			// First verify the installation exists
+			try {
+				await this.octokit.rest.apps.getInstallation({
+					installation_id: installationId
+				});
+			} catch (error) {
+				console.error('Installation not found:', {
+					installationId,
+					error: error instanceof Error ? error.message : 'Unknown error',
+					timestamp: new Date().toISOString()
+				});
+				throw new Error(`Installation ${installationId} not found or no longer exists`);
+			}
+
+			const auth = (await this.octokit.auth({
+				type: 'installation',
+				installationId: installationId
+			})) as { token: string };
+
+			if (!auth.token) {
+				throw new Error('No token received from GitHub');
+			}
+
+			return auth.token;
+		} catch (error) {
+			console.error('Error getting installation token:', {
+				error: error instanceof Error ? error.message : 'Unknown error',
+				installationId,
+				timestamp: new Date().toISOString()
+			});
+			throw error;
+		}
+	}
+
+	// Get repository contents using installation token
+	async getRepositoryContents(
+		installationId: number,
+		owner: string,
+		repo: string,
+		path: string = ''
+	) {
+		try {
+			// Get installation token
+			const token = await this.getInstallationToken(installationId);
+
+			// Create a new Octokit instance with the installation token
+			const octokit = new Octokit({ auth: token });
+
+			// Get repository contents
+			const { data } = await octokit.repos.getContent({
+				owner,
+				repo,
+				path
+			});
+
+			return data;
+		} catch (error) {
+			console.error('Error getting repository contents:', error);
+			throw error;
+		}
+	}
+
+	// List all repositories for an installation
+	async listInstallationRepositories(installationId: number) {
+		try {
+			// Get installation token
+			const token = await this.getInstallationToken(installationId);
+
+			// Create a new Octokit instance with the installation token
+			const octokit = new Octokit({ auth: token });
+
+			// List repositories
+			const { data } = await octokit.apps.listReposAccessibleToInstallation({
+				installation_id: installationId,
+				per_page: 100 // Adjust as needed
+			});
+
+			return data.repositories;
+		} catch (error) {
+			console.error('Error listing installation repositories:', error);
+			throw error;
+		}
+	}
+}

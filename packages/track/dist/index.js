@@ -10,7 +10,7 @@ if (typeof window !== 'undefined') {
 export const networks = {
     testnet: {
         networkPassphrase: "Test SDF Network ; September 2015",
-        contractId: "CDCGN7FWYHXTX4H2C4GTX6CAQAOT3JLBSDN7JPAGF66FYTD6U7R4ZSLG",
+        contractId: "CDD74GBMJYDMTD5UHVYBTUL7XELK2ZZDSUXIDCTNPIYJFAL576RSAPDQ",
     }
 };
 export class Client extends ContractClient {
@@ -23,13 +23,14 @@ export class Client extends ContractClient {
         return ContractClient.deploy({ admin }, options);
     }
     constructor(options) {
-        super(new ContractSpec(["AAAAAAAAAAAAAAANX19jb25zdHJ1Y3RvcgAAAAAAAAEAAAAAAAAABWFkbWluAAAAAAAAEwAAAAEAAAPpAAAD7QAAAAAAAAAD",
-            "AAAAAAAAAAAAAAAGY29tbWl0AAAAAAACAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAADc2hhAAAAABAAAAAA",
-            "AAAAAAAAAAAAAAAKZ2V0X2NvbW1pdAAAAAAAAAAAAAEAAAPoAAAAEA=="]), options);
+        super(new ContractSpec(["AAAAAQAAAAAAAAAAAAAAC0NlcnRpZmljYXRlAAAAAAIAAAAAAAAABGhhc2gAAAAQAAAAAAAAAAJpZAAAAAAAEA==",
+            "AAAAAAAAAAAAAAANX19jb25zdHJ1Y3RvcgAAAAAAAAEAAAAAAAAABWFkbWluAAAAAAAAEwAAAAEAAAPpAAAD7QAAAAAAAAAD",
+            "AAAAAAAAAAAAAAAHY2VydGlmeQAAAAAEAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAACaWQAAAAAABAAAAAAAAAABGhhc2gAAAAQAAAAAAAAAAl0aW1lc3RhbXAAAAAAAAAGAAAAAQAAA+kAAAPtAAAAAAAAAAM=",
+            "AAAAAAAAAAAAAAAGdmVyaWZ5AAAAAAABAAAAAAAAAAl0aW1lc3RhbXAAAAAAAAAGAAAAAQAAA+kAAAfQAAAAC0NlcnRpZmljYXRlAAAAAAM="]), options);
         this.options = options;
     }
     fromJSON = {
-        commit: (this.txFromJSON),
-        get_commit: (this.txFromJSON)
+        certify: (this.txFromJSON),
+        verify: (this.txFromJSON)
     };
 }

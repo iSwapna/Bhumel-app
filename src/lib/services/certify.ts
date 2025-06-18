@@ -1,5 +1,6 @@
 import { contractId } from '$lib/stores/contractId';
 import track from '$lib/contracts/track';
+import type { Certificate } from 'track';
 import { account, send } from '$lib/passkeyClient';
 import { Address } from '@stellar/stellar-sdk';
 import { get } from 'svelte/store';
@@ -27,9 +28,16 @@ import { keyId } from '$lib/stores/keyId';
 // 5. if the hash is not found, it will return an error
 
 interface CertifyResult {
-	hash: string;
+	certificate: Certificate;
 	timestamp: number;
 	userId: string;
+	username: string;
+}
+
+interface VerifyResult {
+	certificate: Certificate;
+	algorithm: string;
+	lastAudited: string;
 }
 
 async function generateHash(input: string): Promise<string> {
@@ -43,9 +51,17 @@ async function generateHash(input: string): Promise<string> {
 export async function certify(
 	summary: string,
 	userId: string,
+	username: string,
 	toastStore: ToastStore
 ): Promise<CertifyResult> {
 	const timestamp = Date.now();
+
+	console.log('Certify function called with:', {
+		summary: summary.substring(0, 100) + '...',
+		userId,
+		username,
+		timestamp
+	});
 
 	// Generate hash from summary + userId + timestamp
 	const hashInput = `${userId}${summary}${timestamp}`;
@@ -60,12 +76,14 @@ export async function certify(
 		const userAddress = Address.fromString(contractIdValue);
 		console.log('Calling track.certify with:', {
 			user: userAddress.toString(),
+			id: userId,
 			hash,
 			timestamp: BigInt(timestamp)
 		});
 
 		const at = await track.certify({
 			user: userAddress.toString(),
+			id: userId,
 			hash: hash,
 			timestamp: BigInt(timestamp)
 		});
@@ -80,7 +98,6 @@ export async function certify(
 		if (currentKeyId.length > 100) {
 			console.warn('[Certify] KeyId appears to be over-escaped, attempting to clean it');
 			try {
-				// Try to parse it as JSON to remove extra escaping
 				cleanKeyId = JSON.parse(currentKeyId);
 			} catch {
 				console.warn('[Certify] Failed to parse keyId as JSON, using as-is');
@@ -99,33 +116,64 @@ export async function certify(
 			background: 'variant-filled-success'
 		});
 
-		return {
-			hash,
+		// Add debug logging for the return value
+		const result = {
+			certificate: {
+				hash,
+				id: userId
+			},
 			timestamp,
-			userId
+			userId,
+			username
 		};
+		console.log('Certify returning:', result);
+		return result;
 	} catch (err) {
 		console.error('Error in certify:', err);
 		toastStore.trigger({
 			message: 'Something went wrong signing the guestbook. Please try again later.',
 			background: 'variant-filled-error'
 		});
-		throw err; // Re-throw the error so the calling code knows it failed
+		throw err;
 	}
 }
 
-export async function verify(
-	hash: string,
-	userId: string,
-	timestamp: number
-): Promise<number | null> {
-	// TODO: Call Rust contract function (will implement later)
-	// For now, just return the timestamp to use the parameters
-	console.log('Verifying hash:', hash, 'for user:', userId, 'at timestamp:', timestamp);
-	return timestamp;
+export async function verify(timestamp: number): Promise<VerifyResult | null> {
+	try {
+		console.log('Verifying timestamp:', timestamp);
+
+		// Call the contract to verify the timestamp exists on the chain
+		const tx = await track.verify({
+			timestamp: BigInt(timestamp)
+		});
+
+		// Debug log the raw result
+		console.log('tx:', tx.simulationData.result.retval.value.toString());
+		// Extract the hash and id from the result
+		const certificate = {
+			hash: tx.result.unwrap().hash,
+			id: tx.result.unwrap().id
+		};
+
+		// Add the additional metadata
+		const verifyResult: VerifyResult = {
+			certificate,
+			algorithm: 'https://github.com/iSwapna/Bhumel-app',
+			lastAudited: 'TBD'
+		};
+
+		console.log('Parsed certificate:', verifyResult);
+		return verifyResult;
+	} catch (err) {
+		console.error('Error in verify:', err);
+		throw err;
+	}
 }
 
-export function generateLink(userId: string, hash: string): string {
-	// TODO: Implement proper URL generation
-	return `/verify?userId=${userId}&hash=${hash}`;
+export function generateLink(username: string, hash: string, timestamp: number): string {
+	// Generate a link that includes username, hash, and timestamp for verification
+	console.log('generateLink called with:', { username, hash, timestamp });
+	const link = `/verify?username=${encodeURIComponent(username)}&hash=${hash}&timestamp=${timestamp}`;
+	console.log('Generated link:', link);
+	return link;
 }

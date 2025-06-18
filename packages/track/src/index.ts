@@ -34,16 +34,21 @@ if (typeof window !== 'undefined') {
 export const networks = {
   testnet: {
     networkPassphrase: "Test SDF Network ; September 2015",
-    contractId: "CCETJECMKOQSSLABSYRI66XSTZNNIGF3Q4N4NB37IYIYRADT62V442XH",
+    contractId: "CDD74GBMJYDMTD5UHVYBTUL7XELK2ZZDSUXIDCTNPIYJFAL576RSAPDQ",
   }
 } as const
 
+
+export interface Certificate {
+  hash: string;
+  id: string;
+}
 
 export interface Client {
   /**
    * Construct and simulate a certify transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
-  certify: ({user, hash, timestamp}: {user: string, hash: string, timestamp: u64}, options?: {
+  certify: ({user, id, hash, timestamp}: {user: string, id: string, hash: string, timestamp: u64}, options?: {
     /**
      * The fee to pay for the transaction. Default: BASE_FEE
      */
@@ -63,7 +68,7 @@ export interface Client {
   /**
    * Construct and simulate a verify transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
-  verify: ({hash}: {hash: string}, options?: {
+  verify: ({timestamp}: {timestamp: u64}, options?: {
     /**
      * The fee to pay for the transaction. Default: BASE_FEE
      */
@@ -78,7 +83,7 @@ export interface Client {
      * Whether to automatically simulate the transaction when constructing the AssembledTransaction. Default: true
      */
     simulate?: boolean;
-  }) => Promise<AssembledTransaction<Option<u64>>>
+  }) => Promise<AssembledTransaction<Result<Certificate>>>
 
 }
 export class Client extends ContractClient {
@@ -100,14 +105,15 @@ export class Client extends ContractClient {
   }
   constructor(public readonly options: ContractClientOptions) {
     super(
-      new ContractSpec([ "AAAAAAAAAAAAAAANX19jb25zdHJ1Y3RvcgAAAAAAAAEAAAAAAAAABWFkbWluAAAAAAAAEwAAAAEAAAPpAAAD7QAAAAAAAAAD",
-        "AAAAAAAAAAAAAAAHY2VydGlmeQAAAAADAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAAEaGFzaAAAABAAAAAAAAAACXRpbWVzdGFtcAAAAAAAAAYAAAABAAAD6QAAA+0AAAAAAAAAAw==",
-        "AAAAAAAAAAAAAAAGdmVyaWZ5AAAAAAABAAAAAAAAAARoYXNoAAAAEAAAAAEAAAPoAAAABg==" ]),
+      new ContractSpec([ "AAAAAQAAAAAAAAAAAAAAC0NlcnRpZmljYXRlAAAAAAIAAAAAAAAABGhhc2gAAAAQAAAAAAAAAAJpZAAAAAAAEA==",
+        "AAAAAAAAAAAAAAANX19jb25zdHJ1Y3RvcgAAAAAAAAEAAAAAAAAABWFkbWluAAAAAAAAEwAAAAEAAAPpAAAD7QAAAAAAAAAD",
+        "AAAAAAAAAAAAAAAHY2VydGlmeQAAAAAEAAAAAAAAAAR1c2VyAAAAEwAAAAAAAAACaWQAAAAAABAAAAAAAAAABGhhc2gAAAAQAAAAAAAAAAl0aW1lc3RhbXAAAAAAAAAGAAAAAQAAA+kAAAPtAAAAAAAAAAM=",
+        "AAAAAAAAAAAAAAAGdmVyaWZ5AAAAAAABAAAAAAAAAAl0aW1lc3RhbXAAAAAAAAAGAAAAAQAAA+kAAAfQAAAAC0NlcnRpZmljYXRlAAAAAAM=" ]),
       options
     )
   }
   public readonly fromJSON = {
     certify: this.txFromJSON<Result<void>>,
-        verify: this.txFromJSON<Option<u64>>
+        verify: this.txFromJSON<Result<Certificate>>
   }
 }

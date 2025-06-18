@@ -18,7 +18,9 @@
 		console.log('GitHub data:', {
 			installationId: $installationId,
 			githubUserId: $githubUserId,
-			githubUsername: $githubUsername
+			githubUsername: $githubUsername,
+			githubUsernameType: typeof $githubUsername,
+			githubUsernameLength: typeof $githubUsername === 'string' ? $githubUsername.length : 'N/A'
 		});
 	}
 
@@ -36,9 +38,13 @@
 		editedSummary: string;
 		skills: Skill[];
 		certificationResult?: {
-			userId: string;
-			hash: string;
+			certificate: {
+				hash: string;
+				id: string;
+			};
 			timestamp: number;
+			userId: string;
+			username: string;
 		};
 	}
 
@@ -173,6 +179,20 @@
 			return;
 		}
 
+		// Use GitHub username or fallback to user ID if username is not available
+		const usernameToUse =
+			typeof $githubUsername === 'string' && $githubUsername.trim() !== ''
+				? $githubUsername
+				: `user-${$githubUserId}`;
+
+		console.log('Username resolution:', {
+			githubUsername: $githubUsername,
+			githubUsernameType: typeof $githubUsername,
+			githubUsernameLength: typeof $githubUsername === 'string' ? $githubUsername.length : 0,
+			usernameToUse,
+			githubUserId: $githubUserId
+		});
+
 		console.log('Starting record process');
 		recordLoading = true;
 		error = null;
@@ -181,9 +201,14 @@
 			console.log('Calling certify with:', {
 				summary: shareData.editedSummary,
 				userId: $githubUserId.toString(),
-				githubUsername: $githubUsername
+				username: usernameToUse
 			});
-			const result = await certify(shareData.editedSummary, $githubUserId.toString(), toastStore);
+			const result = await certify(
+				shareData.editedSummary,
+				$githubUserId.toString(),
+				usernameToUse,
+				toastStore
+			);
 			console.log('Certification result:', result);
 			// Store the result for sharing
 			shareData = { ...shareData, certificationResult: result };
@@ -205,11 +230,21 @@
 		error = null;
 
 		try {
+			console.log('Generating link with:', {
+				username: shareData.certificationResult.username,
+				hash: shareData.certificationResult.certificate.hash,
+				timestamp: shareData.certificationResult.timestamp,
+				githubUsername: $githubUsername,
+				githubUsernameType: typeof $githubUsername
+			});
+
 			const link = generateLink(
-				shareData.certificationResult.userId,
-				shareData.certificationResult.hash
+				shareData.certificationResult.username,
+				shareData.certificationResult.certificate.hash,
+				shareData.certificationResult.timestamp
 			);
 			const fullUrl = window.location.origin + link;
+			console.log('Generated URL:', fullUrl);
 			await navigator.clipboard.writeText(fullUrl);
 			shareSuccess = true;
 			setTimeout(() => {
@@ -357,13 +392,15 @@
 				{#if shareData.certificationResult}
 					<div class="certification-info">
 						<h3>Certification Details</h3>
+						<p><strong>Username:</strong> {shareData.certificationResult.username}</p>
 						<p><strong>User ID:</strong> {shareData.certificationResult.userId}</p>
 						<p>
 							<strong>Timestamp:</strong>
 							{new Date(shareData.certificationResult.timestamp).toLocaleString()}
 						</p>
 						<p>
-							<strong>Hash:</strong> <span class="hash">{shareData.certificationResult.hash}</span>
+							<strong>Hash:</strong>
+							<span class="hash">{shareData.certificationResult.certificate.hash}</span>
 						</p>
 					</div>
 				{/if}
